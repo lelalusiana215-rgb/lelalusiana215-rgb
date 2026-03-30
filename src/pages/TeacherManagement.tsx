@@ -381,29 +381,6 @@ export default function TeacherManagement({ user }: { user: User }) {
                         placeholder="NIP Guru..."
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Email (Akun)</label>
-                      <input 
-                        type="email" required
-                        disabled={!!editingTeacher}
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all disabled:opacity-50"
-                        placeholder="email@sekolah.id"
-                      />
-                    </div>
-                    {!editingTeacher && (
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Password</label>
-                        <input 
-                          type="password" required
-                          value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                          placeholder="••••••••"
-                        />
-                      </div>
-                    )}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Kelas</label>

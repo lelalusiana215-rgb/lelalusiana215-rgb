@@ -37,8 +37,17 @@ const db = firebaseConfig.projectId ? getFirestore(admin.app(), firebaseConfig.f
 // API Routes
 app.post("/api/teachers", async (req, res) => {
   if (!db) return res.status(500).json({ error: "Firebase not initialized" });
-  const { name, email, password, nip, teaching_class, rank_grade, school_id, principal_id } = req.body;
+  let { name, email, password, nip, teaching_class, rank_grade, school_id, principal_id } = req.body;
   
+  // Auto-generate email and password if not provided
+  if (!email) {
+    const cleanNip = nip ? nip.replace(/[^a-zA-Z0-9]/g, '') : Math.random().toString(36).substring(2, 10);
+    email = `guru_${cleanNip}@sekolah.local`;
+  }
+  if (!password) {
+    password = nip ? nip : "guru12345";
+  }
+
   try {
     // 1. Create Auth User using REST API
     const apiKey = firebaseConfig.apiKey;
