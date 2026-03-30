@@ -66,9 +66,14 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data);
+      allow create: if isAuthenticated() && (
+        (isOwner(userId) && isValidUser(request.resource.data)) ||
+        (isPrincipal() && isValidUser(request.resource.data) && request.resource.data.role == 'GURU' && request.resource.data.school_id == getUserData().school_id) ||
+        isAdmin()
+      );
       allow update: if isAuthenticated() && (
         (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.status == resource.data.status) || 
+        (isPrincipal() && resource.data.school_id == getUserData().school_id && isValidUser(request.resource.data)) ||
         isAdmin()
       );
       allow delete: if isAdmin() || (isPrincipal() && resource.data.school_id == getUserData().school_id);
@@ -95,8 +100,34 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /schedules/{scheduleId} {
+      allow read: if isAuthenticated() && (
+        (isPrincipal() && resource.data.school_id == getUserData().school_id && getUserData().status == 'ACTIVE') ||
+        (isGuru() && resource.data.teacher_id == request.auth.uid && getUserData().status == 'ACTIVE') ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (isPrincipal() && getUserData().status == 'ACTIVE' || isAdmin());
+      allow update: if isAuthenticated() && (
+        (request.auth.uid == resource.data.principal_id && getUserData().status == 'ACTIVE') ||
+        isAdmin()
+      );
+      allow delete: if isAdmin() || (isPrincipal() && resource.data.school_id == getUserData().school_id);
+    }
+
     match /test/connection {
       allow read: if true;
+    }
+
+    match /teacher_credentials/{userId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId || 
+        (isPrincipal() && get(/databases/$(database)/documents/users/$(userId)).data.school_id == getUserData().school_id) || 
+        isAdmin()
+      );
+      allow write: if isAuthenticated() && (
+        (isPrincipal() && get(/databases/$(database)/documents/users/$(userId)).data.school_id == getUserData().school_id) || 
+        isAdmin()
+      );
     }
   }
 }

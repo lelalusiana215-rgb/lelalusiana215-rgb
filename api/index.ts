@@ -1,6 +1,4 @@
 import express from "express";
-import admin from "firebase-admin";
-import { getFirestore } from "firebase-admin/firestore";
 import fs from "fs";
 import path from "path";
 
@@ -8,7 +6,7 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Initialize Firebase Admin
+// Initialize Firebase Config
 let firebaseConfig;
 try {
   const configPath = path.join(process.cwd(), "firebase-applet-config.json");
@@ -22,21 +20,16 @@ try {
   };
 }
 
-if (!admin.apps.length) {
-  if (firebaseConfig.projectId) {
-    admin.initializeApp({
-      projectId: firebaseConfig.projectId,
-    });
-  } else {
-    console.warn("No Firebase Project ID found. Firebase Admin will not be initialized.");
-  }
-}
-
-const db = firebaseConfig.projectId ? getFirestore(admin.app(), firebaseConfig.firestoreDatabaseId) : null;
-
 // API Routes
+app.get("/api/test-firebase", (req, res) => {
+  res.json({
+    firebaseConfigLoaded: !!firebaseConfig,
+    projectId: firebaseConfig?.projectId
+  });
+});
+
 app.post("/api/teachers", async (req, res) => {
-  if (!db) return res.status(500).json({ error: "Firebase not initialized" });
+  if (!firebaseConfig.apiKey) return res.status(500).json({ error: "Firebase API Key not found" });
   let { name, email, password, nip, teaching_class, rank_grade, school_id, principal_id } = req.body;
   
   // Auto-generate email and password if not provided
@@ -44,8 +37,8 @@ app.post("/api/teachers", async (req, res) => {
     const cleanNip = nip ? nip.replace(/[^a-zA-Z0-9]/g, '') : Math.random().toString(36).substring(2, 10);
     email = `guru_${cleanNip}@sekolah.local`;
   }
-  if (!password) {
-    password = nip ? nip : "guru12345";
+  if (!password || password.length < 6) {
+    password = (nip && nip.length >= 6) ? nip : "guru12345";
   }
 
   try {
@@ -102,58 +95,9 @@ app.post("/api/teachers", async (req, res) => {
       })
     });
 
-    // 2. Create User Profile in Firestore
-    await db.collection("users").doc(uid).set({
-      email,
-      name,
-      role: "GURU",
-      school_id,
-      nip,
-      teaching_class,
-      rank_grade,
-      status: "ACTIVE"
-    });
-
-    res.json({ success: true, id: uid });
+    res.json({ success: true, id: uid, email, password });
   } catch (e: any) {
     console.error("Error creating teacher:", e);
-    res.status(500).json({ error: e.message || String(e) });
-  }
-});
-
-app.put("/api/teachers/:id", async (req, res) => {
-  if (!db) return res.status(500).json({ error: "Firebase not initialized" });
-  const { id } = req.params;
-  const { name, nip, teaching_class, rank_grade } = req.body;
-  
-  try {
-    await db.collection("users").doc(id).update({
-      name,
-      nip,
-      teaching_class,
-      rank_grade
-    });
-    res.json({ success: true });
-  } catch (e: any) {
-    console.error("Error updating teacher:", e);
-    res.status(500).json({ error: e.message || String(e) });
-  }
-});
-
-app.delete("/api/teachers/:id", async (req, res) => {
-  if (!db) return res.status(500).json({ error: "Firebase not initialized" });
-  const { id } = req.params;
-  
-  try {
-    // 1. Delete Firestore Document
-    await db.collection("users").doc(id).delete();
-    
-    // 2. Delete Auth User (Not possible without service account or user's idToken, so we just delete the Firestore doc)
-    // await auth.deleteUser(id);
-    
-    res.json({ success: true });
-  } catch (e: any) {
-    console.error("Error deleting teacher:", e);
     res.status(500).json({ error: e.message || String(e) });
   }
 });

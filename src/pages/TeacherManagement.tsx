@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { User } from "../types";
-import { Plus, Search, Mail, User as UserIcon, MoreVertical, Trash2, Edit2, X, AlertCircle } from "lucide-react";
+import { Plus, Search, Mail, User as UserIcon, MoreVertical, Trash2, Edit2, X, AlertCircle, Key } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { db, auth } from "../firebase";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, setDoc, getDoc } from "firebase/firestore";
 
 enum OperationType {
   CREATE = 'create',
@@ -78,6 +78,8 @@ export default function TeacherManagement({ user }: { user: User }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewedPassword, setViewedPassword] = useState<{name: string, password: string} | null>(null);
+  const [teacherToDelete, setTeacherToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user.id) return;
@@ -108,28 +110,20 @@ export default function TeacherManagement({ user }: { user: User }) {
     setError("");
     try {
       if (editingTeacher) {
-        // Update existing teacher
-        const res = await fetch(`/api/teachers/${editingTeacher.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            ...formData, 
-            school_id: user.school_id,
-            principal_id: user.id 
-          }),
-        });
-        
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Server tidak merespons dengan format yang benar. Pastikan server backend berjalan.");
+        // Update existing teacher in Firestore directly
+        try {
+          await updateDoc(doc(db, "users", editingTeacher.id), {
+            name: formData.name,
+            nip: formData.nip,
+            teaching_class: formData.teaching_class,
+            rank_grade: formData.rank_grade
+          });
+          setMessage({ type: "success", text: "Data guru berhasil diperbarui." });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `users/${editingTeacher.id}`);
         }
-        
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Gagal memperbarui guru");
-        
-        setMessage({ type: "success", text: "Data guru berhasil diperbarui." });
       } else {
-        // 1. Create Teacher via Backend (handles Auth User creation)
+        // 1. Create Auth User via Backend
         const res = await fetch("/api/teachers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -148,7 +142,32 @@ export default function TeacherManagement({ user }: { user: User }) {
         const data = await res.json();
         
         if (res.ok) {
-          // 2. Create initial supervision if schedule provided
+          // 2. Create User Profile in Firestore directly
+          try {
+            await setDoc(doc(db, "users", data.id), {
+              email: data.email || "",
+              name: formData.name || "",
+              role: "GURU",
+              school_id: user.school_id || "",
+              principal_id: user.id || "",
+              nip: formData.nip || "",
+              teaching_class: formData.teaching_class || "",
+              rank_grade: formData.rank_grade || "",
+              status: "ACTIVE"
+            });
+
+            // Save credentials for principal to view later
+            if (data.password) {
+              await setDoc(doc(db, "teacher_credentials", data.id), {
+                password: data.password,
+                updated_at: new Date().toISOString()
+              });
+            }
+          } catch (err) {
+            handleFirestoreError(err, OperationType.CREATE, `users/${data.id}`);
+          }
+
+          // 3. Create initial supervision if schedule provided
           if (formData.schedule.stage1) {
             try {
               await addDoc(collection(db, "supervisions"), {
@@ -172,7 +191,7 @@ export default function TeacherManagement({ user }: { user: User }) {
               handleFirestoreError(err, OperationType.CREATE, "supervisions");
             }
           }
-          setMessage({ type: "success", text: "Guru dan jadwal berhasil disimpan." });
+          setMessage({ type: "success", text: "Guru berhasil ditambahkan." });
         } else {
           setError(data.error);
           return;
@@ -213,20 +232,41 @@ export default function TeacherManagement({ user }: { user: User }) {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (teacherId: string) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus guru ini? Akun dan data guru akan dihapus permanen.")) return;
+  const handleDelete = (teacherId: string) => {
+    setTeacherToDelete(teacherId);
+  };
+
+  const confirmDelete = async () => {
+    if (!teacherToDelete) return;
     
     setMessage({ type: "", text: "" });
     try {
-      const res = await fetch(`/api/teachers/${teacherId}`, {
-        method: "DELETE"
-      });
-      if (!res.ok) throw new Error("Gagal menghapus guru");
-      
+      try {
+        await deleteDoc(doc(db, "teacher_credentials", teacherToDelete));
+      } catch (e) {
+        console.log("No credentials to delete or permission denied");
+      }
+      await deleteDoc(doc(db, "users", teacherToDelete));
       setMessage({ type: "success", text: "Guru berhasil dihapus." });
     } catch (err) {
-      console.error(err);
+      handleFirestoreError(err, OperationType.DELETE, `users/${teacherToDelete}`);
       setMessage({ type: "error", text: "Gagal menghapus guru." });
+    } finally {
+      setTeacherToDelete(null);
+    }
+  };
+
+  const handleViewPassword = async (teacher: any) => {
+    try {
+      const credDoc = await getDoc(doc(db, "teacher_credentials", teacher.id));
+      if (credDoc.exists()) {
+        setViewedPassword({ name: teacher.name, password: credDoc.data().password });
+      } else {
+        setViewedPassword({ name: teacher.name, password: teacher.nip || "guru12345" });
+      }
+    } catch (err) {
+      console.error("Error fetching password:", err);
+      setMessage({ type: "error", text: "Gagal mengambil kata sandi." });
     }
   };
 
@@ -304,6 +344,14 @@ export default function TeacherManagement({ user }: { user: User }) {
 
             <div className="flex items-center space-x-2 mt-8 pt-6 border-t border-zinc-50">
               <button 
+                onClick={() => handleViewPassword(teacher)}
+                className="flex-1 flex items-center justify-center space-x-2 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-xs font-bold transition-all"
+                title="Lihat Kata Sandi"
+              >
+                <Key size={14} />
+                <span>Sandi</span>
+              </button>
+              <button 
                 onClick={() => handleEdit(teacher)}
                 className="flex-1 flex items-center justify-center space-x-2 py-2 bg-zinc-50 hover:bg-zinc-100 text-zinc-600 rounded-xl text-xs font-bold transition-all"
               >
@@ -321,6 +369,102 @@ export default function TeacherManagement({ user }: { user: User }) {
           </motion.div>
         ))}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {teacherToDelete && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-red-600 flex items-center gap-2">
+                  <AlertCircle size={20} />
+                  Hapus Guru
+                </h3>
+                <button 
+                  onClick={() => setTeacherToDelete(null)}
+                  className="p-2 hover:bg-zinc-100 rounded-full transition-colors"
+                >
+                  <X size={20} className="text-zinc-400" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-zinc-600">
+                  Apakah Anda yakin ingin menghapus guru ini? Akun dan data guru akan dihapus permanen dan tidak dapat dikembalikan.
+                </p>
+              </div>
+              <div className="p-6 bg-zinc-50 border-t border-zinc-100 flex gap-3">
+                <button 
+                  onClick={() => setTeacherToDelete(null)}
+                  className="flex-1 py-3 bg-white border border-zinc-200 text-zinc-700 rounded-xl font-bold hover:bg-zinc-50 transition-colors"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={confirmDelete}
+                  className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
+                >
+                  Ya, Hapus
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* View Password Modal */}
+      <AnimatePresence>
+        {viewedPassword && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
+                <h3 className="text-lg font-bold">Kata Sandi Guru</h3>
+                <button 
+                  onClick={() => setViewedPassword(null)}
+                  className="p-2 hover:bg-zinc-100 rounded-full transition-colors"
+                >
+                  <X size={20} className="text-zinc-400" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-zinc-500">
+                  Berikut adalah kata sandi untuk akun <span className="font-bold text-zinc-900">{viewedPassword.name}</span>. Silakan berikan kata sandi ini kepada guru yang bersangkutan agar mereka dapat masuk ke sistem.
+                </p>
+                <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 flex items-center justify-between">
+                  <code className="text-lg font-mono font-bold text-emerald-600">{viewedPassword.password}</code>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(viewedPassword.password);
+                      setMessage({ type: "success", text: "Kata sandi disalin ke clipboard!" });
+                    }}
+                    className="p-2 text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                    title="Salin ke clipboard"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                </div>
+              </div>
+              <div className="p-6 bg-zinc-50 border-t border-zinc-100">
+                <button 
+                  onClick={() => setViewedPassword(null)}
+                  className="w-full py-3 bg-[#141414] text-white rounded-xl font-bold hover:bg-zinc-800 transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Add Teacher Modal */}
       <AnimatePresence>

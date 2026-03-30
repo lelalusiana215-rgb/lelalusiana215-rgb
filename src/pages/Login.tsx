@@ -43,12 +43,14 @@ export default function Login() {
     setSuccess("");
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      // Jika input tidak mengandung '@', asumsikan itu NIP guru
+      const loginEmail = email.includes('@') ? email : `guru_${email.replace(/[^a-zA-Z0-9]/g, '')}@sekolah.local`;
+      await signInWithEmailAndPassword(auth, loginEmail, password);
       navigate("/");
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError("Email atau kata sandi salah");
+        setError("Email/NIP atau kata sandi salah");
       } else if (err.code === 'auth/operation-not-allowed') {
         setError("Metode pendaftaran Email/Password belum diaktifkan di Firebase Console. Silakan aktifkan di menu Authentication > Sign-in method.");
       } else {
@@ -61,15 +63,22 @@ export default function Login() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError("Silakan masukkan email Anda terlebih dahulu di kolom email.");
+      setError("Silakan masukkan Email atau NIP Anda terlebih dahulu di kolom atas.");
       return;
     }
+    
+    // Jika itu adalah akun guru (menggunakan NIP atau email .local)
+    if (!email.includes('@') || email.endsWith('@sekolah.local')) {
+      setError("Untuk akun Guru, kata sandi tidak dapat direset melalui email. Silakan hubungi Kepala Sekolah atau Admin Anda untuk mereset kata sandi.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setSuccess("");
     try {
       await sendPasswordResetEmail(auth, email);
-      setSuccess("Link reset kata sandi telah dikirim ke email Anda. Silakan periksa kotak masuk atau spam.");
+      setSuccess("Link reset kata sandi telah dikirim ke email Anda. Silakan periksa kotak masuk atau spam. (Catatan: Jika Anda menggunakan email palsu saat mendaftar, Anda tidak akan menerima email ini).");
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/user-not-found') {
