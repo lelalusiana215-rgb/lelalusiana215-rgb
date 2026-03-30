@@ -1,0 +1,502 @@
+import React, { useState, useEffect } from "react";
+import { User } from "../types";
+import { Plus, Search, Mail, User as UserIcon, MoreVertical, Trash2, Edit2, X, AlertCircle } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { db, auth } from "../firebase";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+export default function TeacherManagement({ user }: { user: User }) {
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<any>(null);
+  const [formData, setFormData] = useState({ 
+    name: "", 
+    email: "", 
+    password: "",
+    nip: "",
+    teaching_class: "",
+    rank_grade: "",
+    schedule: {
+      stage1: "",
+      stage2: "",
+      stage3: "",
+      stage4: ""
+    }
+  });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (!user.id) return;
+
+    const usersRef = collection(db, "users");
+    const q = query(
+      usersRef, 
+      where("school_id", "==", user.school_id),
+      where("role", "==", "GURU"),
+      where("status", "==", "ACTIVE")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const teachs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setTeachers(teachs);
+      setLoading(false);
+    }, (err) => {
+      console.error(err);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user.id, user.school_id]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      if (editingTeacher) {
+        // Update existing teacher
+        const res = await fetch(`/api/teachers/${editingTeacher.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            ...formData, 
+            school_id: user.school_id,
+            principal_id: user.id 
+          }),
+        });
+        
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Server tidak merespons dengan format yang benar. Pastikan server backend berjalan.");
+        }
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Gagal memperbarui guru");
+        
+        setMessage({ type: "success", text: "Data guru berhasil diperbarui." });
+      } else {
+        // 1. Create Teacher via Backend (handles Auth User creation)
+        const res = await fetch("/api/teachers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            ...formData, 
+            school_id: user.school_id,
+            principal_id: user.id 
+          }),
+        });
+        
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Server tidak merespons dengan format yang benar. Pastikan server backend berjalan.");
+        }
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          // 2. Create initial supervision if schedule provided
+          if (formData.schedule.stage1) {
+            try {
+              await addDoc(collection(db, "supervisions"), {
+                teacher_id: data.id,
+                teacher_name: formData.name,
+                teacher_nip: formData.nip,
+                principal_id: user.id,
+                principal_name: user.name,
+                principal_nip: user.nip || "-",
+                school_id: user.school_id,
+                date: formData.schedule.stage1,
+                stage1_date: formData.schedule.stage1,
+                stage2_date: formData.schedule.stage2,
+                stage3_date: formData.schedule.stage3,
+                stage4_date: formData.schedule.stage4,
+                status: "BELUM",
+                final_score: 0,
+                created_at: serverTimestamp()
+              });
+            } catch (err) {
+              handleFirestoreError(err, OperationType.CREATE, "supervisions");
+            }
+          }
+          setMessage({ type: "success", text: "Guru dan jadwal berhasil disimpan." });
+        } else {
+          setError(data.error);
+          return;
+        }
+      }
+
+      setIsModalOpen(false);
+      setEditingTeacher(null);
+      setFormData({ 
+        name: "", email: "", password: "", nip: "", teaching_class: "", rank_grade: "",
+        schedule: { stage1: "", stage2: "", stage3: "", stage4: "" }
+      });
+    } catch (err: any) {
+      setError(err.message || "Terjadi kesalahan koneksi");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const [message, setMessage] = useState({ type: "", text: "" });
+
+  const handleEdit = (teacher: any) => {
+    setEditingTeacher(teacher);
+    setFormData({
+      name: teacher.name || "",
+      email: teacher.email || "",
+      password: "", // Don't show password
+      nip: teacher.nip || "",
+      teaching_class: teacher.teaching_class || "",
+      rank_grade: teacher.rank_grade || "",
+      schedule: {
+        stage1: "",
+        stage2: "",
+        stage3: "",
+        stage4: ""
+      }
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (teacherId: string) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus guru ini? Akun dan data guru akan dihapus permanen.")) return;
+    
+    setMessage({ type: "", text: "" });
+    try {
+      const res = await fetch(`/api/teachers/${teacherId}`, {
+        method: "DELETE"
+      });
+      if (!res.ok) throw new Error("Gagal menghapus guru");
+      
+      setMessage({ type: "success", text: "Guru berhasil dihapus." });
+    } catch (err) {
+      console.error(err);
+      setMessage({ type: "error", text: "Gagal menghapus guru." });
+    }
+  };
+
+  const filteredTeachers = teachers.filter(t => 
+    t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (t.nip && t.nip.includes(searchQuery))
+  );
+
+  if (loading) return <div>Memuat data guru...</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+          <input 
+            type="text" 
+            placeholder="Cari nama guru atau NIP..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-white border border-black/5 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+          />
+        </div>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center space-x-2 bg-[#141414] text-white px-6 py-3 rounded-2xl shadow-lg hover:bg-zinc-800 transition-all font-bold"
+        >
+          <Plus size={20} />
+          <span>Tambah Guru & Jadwal</span>
+        </button>
+      </div>
+
+      {message.text && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-4 rounded-2xl text-sm border ${message.type === 'success' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}
+        >
+          {message.text}
+        </motion.div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredTeachers.map((teacher) => (
+          <motion.div 
+            key={teacher.id}
+            whileHover={{ y: -5 }}
+            className="bg-white p-6 rounded-3xl border border-black/5 shadow-sm group"
+          >
+            <div className="flex items-start justify-between mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-500 text-xl font-bold">
+                {teacher.name.charAt(0)}
+              </div>
+            </div>
+            
+            <h3 className="text-lg font-bold text-zinc-900 group-hover:text-emerald-600 transition-colors">{teacher.name}</h3>
+            <div className="space-y-3 mt-4">
+              <div className="flex items-center text-sm text-zinc-500">
+                <Mail size={16} className="mr-3 text-zinc-300" />
+                {teacher.email}
+              </div>
+              <div className="flex items-center text-sm text-zinc-500">
+                <UserIcon size={16} className="mr-3 text-zinc-300" />
+                NIP: {teacher.nip || "-"}
+              </div>
+              <div className="flex items-center text-sm text-zinc-500">
+                <div className="w-4 mr-3 flex justify-center text-zinc-300 font-bold text-[10px]">KL</div>
+                Kelas: {teacher.teaching_class || "-"}
+              </div>
+              <div className="flex items-center text-sm text-zinc-500">
+                <div className="w-4 mr-3 flex justify-center text-zinc-300 font-bold text-[10px]">PG</div>
+                Pangkat: {teacher.rank_grade || "-"}
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 mt-8 pt-6 border-t border-zinc-50">
+              <button 
+                onClick={() => handleEdit(teacher)}
+                className="flex-1 flex items-center justify-center space-x-2 py-2 bg-zinc-50 hover:bg-zinc-100 text-zinc-600 rounded-xl text-xs font-bold transition-all"
+              >
+                <Edit2 size={14} />
+                <span>Edit</span>
+              </button>
+              <button 
+                onClick={() => handleDelete(teacher.id)}
+                className="flex-1 flex items-center justify-center space-x-2 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-all"
+              >
+                <Trash2 size={14} />
+                <span>Hapus</span>
+              </button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Add Teacher Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden my-8"
+            >
+              <div className="p-8 border-b border-zinc-100 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-serif italic font-bold">
+                    {editingTeacher ? "Edit Data Guru" : "Tambah Guru & Jadwal Supervisi"}
+                  </h3>
+                  <p className="text-sm text-zinc-400 mt-1">
+                    {editingTeacher ? "Perbarui informasi profil guru." : "Lengkapi data guru dan tentukan jadwal supervisi akademik."}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingTeacher(null);
+                  }} 
+                  className="text-zinc-400 hover:text-zinc-900"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <form onSubmit={handleSubmit} className="p-8 space-y-8">
+                {error && (
+                  <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm border border-red-100">
+                    {error}
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <h4 className="text-sm font-bold text-zinc-900 border-l-4 border-emerald-500 pl-3">Data Pribadi Guru</h4>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Nama Lengkap</label>
+                      <input 
+                        type="text" required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                        placeholder="Nama Guru..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">NIP</label>
+                      <input 
+                        type="text" required
+                        value={formData.nip}
+                        onChange={(e) => setFormData({ ...formData, nip: e.target.value })}
+                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                        placeholder="NIP Guru..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Email (Akun)</label>
+                      <input 
+                        type="email" required
+                        disabled={!!editingTeacher}
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all disabled:opacity-50"
+                        placeholder="email@sekolah.id"
+                      />
+                    </div>
+                    {!editingTeacher && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Password</label>
+                        <input 
+                          type="password" required
+                          value={formData.password}
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                          placeholder="••••••••"
+                        />
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Kelas</label>
+                        <input 
+                          type="text" required
+                          value={formData.teaching_class}
+                          onChange={(e) => setFormData({ ...formData, teaching_class: e.target.value })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                          placeholder="Contoh: 1A"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Pangkat/Gol</label>
+                        <input 
+                          type="text" required
+                          value={formData.rank_grade}
+                          onChange={(e) => setFormData({ ...formData, rank_grade: e.target.value })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                          placeholder="Contoh: III/a"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {!editingTeacher && (
+                    <div className="space-y-6">
+                      <h4 className="text-sm font-bold text-zinc-900 border-l-4 border-indigo-500 pl-3">Jadwal Supervisi</h4>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 1: Administrasi</label>
+                          <input 
+                            type="date" required
+                            value={formData.schedule.stage1}
+                            onChange={(e) => setFormData({ ...formData, schedule: { ...formData.schedule, stage1: e.target.value } })}
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 2: Perencanaan</label>
+                          <input 
+                            type="date" required
+                            value={formData.schedule.stage2}
+                            onChange={(e) => setFormData({ ...formData, schedule: { ...formData.schedule, stage2: e.target.value } })}
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 3: Pelaksanaan</label>
+                          <input 
+                            type="date" required
+                            value={formData.schedule.stage3}
+                            onChange={(e) => setFormData({ ...formData, schedule: { ...formData.schedule, stage3: e.target.value } })}
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 4: Refleksi</label>
+                          <input 
+                            type="date" required
+                            value={formData.schedule.stage4}
+                            onChange={(e) => setFormData({ ...formData, schedule: { ...formData.schedule, stage4: e.target.value } })}
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-6 border-t border-zinc-100 flex gap-4">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setEditingTeacher(null);
+                    }}
+                    className="flex-1 py-4 rounded-xl font-bold text-zinc-500 hover:bg-zinc-50 transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-[2] bg-[#141414] text-white py-4 rounded-xl font-bold hover:bg-zinc-800 transition-all shadow-lg disabled:opacity-50"
+                  >
+                    {submitting ? "Menyimpan..." : (editingTeacher ? "Perbarui Guru" : "Simpan Guru & Jadwal")}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

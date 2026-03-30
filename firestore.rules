@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'ADMIN') ||
+        (request.auth.token.email == "lelalusiana215@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isPrincipal() {
+      return isAuthenticated() && getUserData().role == 'KEPALA_SEKOLAH';
+    }
+
+    function isGuru() {
+      return isAuthenticated() && getUserData().role == 'GURU';
+    }
+
+    // ===============================================================
+    // Data Validation
+    // ===============================================================
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'name', 'role', 'school_id', 'nip', 'status']) &&
+             data.email is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.role in ['KEPALA_SEKOLAH', 'GURU', 'ADMIN'] &&
+             data.school_id is string &&
+             data.nip is string &&
+             data.status in ['PENDING', 'ACTIVE', 'REJECTED'];
+    }
+
+    function isValidSchool(data) {
+      return data.keys().hasAll(['name', 'address', 'header_text', 'status']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.address is string &&
+             data.header_text is string &&
+             data.status in ['PENDING', 'ACTIVE', 'REJECTED'];
+    }
+
+    function isValidSupervision(data) {
+      return data.keys().hasAll(['teacher_id', 'principal_id', 'date', 'status']) &&
+             data.teacher_id is string &&
+             data.principal_id is string &&
+             data.date is string &&
+             data.status in ['BELUM', 'PROSES', 'SELESAI'];
+    }
+
+    // ===============================================================
+    // Match Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isAuthenticated() && (
+        (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.status == resource.data.status) || 
+        isAdmin()
+      );
+      allow delete: if isAdmin() || (isPrincipal() && resource.data.school_id == getUserData().school_id);
+    }
+
+    match /schools/{schoolId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidSchool(request.resource.data);
+      allow update: if (isAdmin() || (isPrincipal() && getUserData().school_id == schoolId && getUserData().status == 'ACTIVE')) && isValidSchool(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /supervisions/{supervisionId} {
+      allow read: if isAuthenticated() && (
+        (isPrincipal() && resource.data.school_id == getUserData().school_id && getUserData().status == 'ACTIVE') ||
+        (isGuru() && resource.data.teacher_id == request.auth.uid && getUserData().status == 'ACTIVE') ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (isPrincipal() && getUserData().status == 'ACTIVE' || isAdmin());
+      allow update: if isAuthenticated() && (
+        (request.auth.uid == resource.data.principal_id && getUserData().status == 'ACTIVE') ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}
