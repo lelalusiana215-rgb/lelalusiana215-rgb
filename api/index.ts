@@ -23,15 +23,20 @@ try {
 }
 
 if (!admin.apps.length) {
-  admin.initializeApp({
-    projectId: firebaseConfig.projectId,
-  });
+  if (firebaseConfig.projectId) {
+    admin.initializeApp({
+      projectId: firebaseConfig.projectId,
+    });
+  } else {
+    console.warn("No Firebase Project ID found. Firebase Admin will not be initialized.");
+  }
 }
 
-const db = getFirestore(admin.app(), firebaseConfig.firestoreDatabaseId);
+const db = firebaseConfig.projectId ? getFirestore(admin.app(), firebaseConfig.firestoreDatabaseId) : null;
 
 // API Routes
 app.post("/api/teachers", async (req, res) => {
+  if (!db) return res.status(500).json({ error: "Firebase not initialized" });
   const { name, email, password, nip, teaching_class, rank_grade, school_id, principal_id } = req.body;
   
   try {
@@ -108,6 +113,7 @@ app.post("/api/teachers", async (req, res) => {
 });
 
 app.put("/api/teachers/:id", async (req, res) => {
+  if (!db) return res.status(500).json({ error: "Firebase not initialized" });
   const { id } = req.params;
   const { name, nip, teaching_class, rank_grade } = req.body;
   
@@ -126,6 +132,7 @@ app.put("/api/teachers/:id", async (req, res) => {
 });
 
 app.delete("/api/teachers/:id", async (req, res) => {
+  if (!db) return res.status(500).json({ error: "Firebase not initialized" });
   const { id } = req.params;
   
   try {
