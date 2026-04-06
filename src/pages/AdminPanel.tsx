@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase";
-import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from "firebase/firestore";
+import { db, auth } from "../firebase";
+import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteDoc, writeBatch } from "firebase/firestore";
 import { User, School } from "../types";
-import { Check, X, School as SchoolIcon, User as UserIcon, Loader2 } from "lucide-react";
+import { Check, X, School as SchoolIcon, User as UserIcon, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export default function AdminPanel({ user }: { user: User }) {
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [schools, setSchools] = useState<{ [key: string]: School }>({});
   const [loading, setLoading] = useState(true);
+  const [isResetting, setIsResetting] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => {
     // Fetch schools first to have names for the user list
@@ -62,6 +64,39 @@ export default function AdminPanel({ user }: { user: User }) {
     }
   };
 
+  const handleResetApp = async () => {
+    setIsResetting(true);
+    setMessage({ type: "", text: "" });
+    try {
+      const collectionsToClear = ["supervisions", "schedules", "teacher_credentials", "schools", "users"];
+      
+      for (const coll of collectionsToClear) {
+        const snapshot = await getDocs(collection(db, coll));
+        const deletePromises: Promise<void>[] = [];
+        
+        snapshot.forEach((document) => {
+          // Do not delete the current admin user
+          if (coll === "users" && document.id === auth.currentUser?.uid) {
+            return;
+          }
+          deletePromises.push(deleteDoc(doc(db, coll, document.id)));
+        });
+        
+        if (deletePromises.length > 0) {
+          await Promise.all(deletePromises);
+        }
+      }
+      
+      setMessage({ type: "success", text: "Aplikasi berhasil di-reset ke setelan awal." });
+      setShowResetConfirm(false);
+    } catch (err) {
+      console.error("Error resetting app:", err);
+      setMessage({ type: "error", text: "Gagal mereset aplikasi. Pastikan Anda memiliki izin." });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -72,9 +107,18 @@ export default function AdminPanel({ user }: { user: User }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-8 rounded-3xl shadow-sm border border-black/5">
-        <h2 className="text-2xl font-bold text-zinc-800 mb-2">Persetujuan Pendaftaran</h2>
-        <p className="text-zinc-500">Kelola pendaftaran sekolah dan kepala sekolah baru.</p>
+      <div className="bg-white p-8 rounded-3xl shadow-sm border border-black/5 flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-zinc-800 mb-2">Persetujuan Pendaftaran</h2>
+          <p className="text-zinc-500">Kelola pendaftaran sekolah dan kepala sekolah baru.</p>
+        </div>
+        <button
+          onClick={() => setShowResetConfirm(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors font-medium"
+        >
+          <RefreshCw size={18} />
+          Reset Aplikasi
+        </button>
       </div>
 
       {message.text && (
@@ -142,6 +186,62 @@ export default function AdminPanel({ user }: { user: User }) {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Reset Confirmation Modal */}
+      <AnimatePresence>
+        {showResetConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl shadow-xl max-w-md w-full overflow-hidden border border-black/5"
+            >
+              <div className="p-6 border-b border-zinc-100 flex items-center gap-3 text-red-600">
+                <AlertTriangle size={24} />
+                <h3 className="text-xl font-bold">Reset Aplikasi?</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-zinc-600 leading-relaxed">
+                  Tindakan ini akan <strong>menghapus SEMUA data</strong> dalam aplikasi, termasuk:
+                </p>
+                <ul className="list-disc list-inside text-zinc-600 space-y-1 ml-2">
+                  <li>Data Sekolah</li>
+                  <li>Data Kepala Sekolah & Guru</li>
+                  <li>Jadwal & Hasil Supervisi</li>
+                  <li>Kredensial Pengguna</li>
+                </ul>
+                <p className="text-red-600 text-sm font-medium mt-4">
+                  Peringatan: Tindakan ini tidak dapat dibatalkan!
+                </p>
+              </div>
+              <div className="p-6 bg-zinc-50 border-t border-zinc-100 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowResetConfirm(false)}
+                  disabled={isResetting}
+                  className="px-4 py-2 text-zinc-600 font-medium hover:bg-zinc-100 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleResetApp}
+                  disabled={isResetting}
+                  className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {isResetting ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Mereset...
+                    </>
+                  ) : (
+                    "Ya, Reset Semua Data"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

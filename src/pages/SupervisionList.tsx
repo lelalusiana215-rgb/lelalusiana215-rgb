@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { User, Supervision } from "../types";
-import { Plus, Search, Filter, ChevronRight, FileText, CheckCircle2, Clock, AlertCircle, X } from "lucide-react";
+import { Plus, Search, Filter, ChevronRight, FileText, CheckCircle2, Clock, AlertCircle, X, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { db } from "../firebase";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, getDocs, deleteDoc, doc } from "firebase/firestore";
 
 export default function SupervisionList({ user }: { user: User }) {
   const [supervisions, setSupervisions] = useState<Supervision[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [newSupervision, setNewSupervision] = useState({ 
     teacher_id: "", 
     date: "",
@@ -21,6 +23,7 @@ export default function SupervisionList({ user }: { user: User }) {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [message, setMessage] = useState({ type: "", text: "" });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,6 +81,33 @@ export default function SupervisionList({ user }: { user: User }) {
     }
   };
 
+  const handleReset = async () => {
+    setIsResetting(true);
+    setMessage({ type: "", text: "" });
+    try {
+      const supervisionsRef = collection(db, "supervisions");
+      const q = query(supervisionsRef, where("school_id", "==", user.school_id));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const deletePromises: Promise<void>[] = [];
+        querySnapshot.forEach((document) => {
+          deletePromises.push(deleteDoc(doc(db, "supervisions", document.id)));
+        });
+        
+        await Promise.all(deletePromises);
+      }
+      
+      setMessage({ type: "success", text: "Semua data supervisi berhasil dihapus. Anda dapat menjadwalkan ulang supervisi sekarang." });
+      setIsResetModalOpen(false);
+    } catch (err) {
+      console.error("Error resetting supervisions:", err);
+      setMessage({ type: "error", text: "Gagal mereset data supervisi. Pastikan Anda memiliki izin." });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const filteredSupervisions = supervisions.filter(sup => {
     const matchesSearch = sup.teacher_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          sup.status?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -89,6 +119,16 @@ export default function SupervisionList({ user }: { user: User }) {
 
   return (
     <div className="space-y-6">
+      {message.text && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-4 rounded-2xl text-sm border ${message.type === 'success' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}
+        >
+          {message.text}
+        </motion.div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
@@ -112,13 +152,23 @@ export default function SupervisionList({ user }: { user: User }) {
             <option value="SELESAI">Selesai</option>
           </select>
           {user.role === 'KEPALA_SEKOLAH' && (
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center space-x-2 bg-[#141414] text-white px-6 py-3 rounded-2xl shadow-lg hover:bg-zinc-800 transition-all font-bold"
-            >
-              <Plus size={20} />
-              <span>Supervisi Baru</span>
-            </button>
+            <>
+              <button 
+                onClick={() => setIsResetModalOpen(true)}
+                className="flex items-center space-x-2 bg-red-50 text-red-600 px-4 py-3 rounded-2xl shadow-sm hover:bg-red-100 transition-all font-bold"
+                title="Reset Jadwal Supervisi"
+              >
+                <RefreshCw size={20} />
+                <span className="hidden sm:inline">Reset Jadwal</span>
+              </button>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center space-x-2 bg-[#141414] text-white px-6 py-3 rounded-2xl shadow-lg hover:bg-zinc-800 transition-all font-bold"
+              >
+                <Plus size={20} />
+                <span>Supervisi Baru</span>
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -280,6 +330,63 @@ export default function SupervisionList({ user }: { user: User }) {
           </motion.div>
         </div>
       )}
+      {/* Reset Confirmation Modal */}
+      <AnimatePresence>
+        {isResetModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl shadow-xl max-w-md w-full overflow-hidden border border-black/5"
+            >
+              <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
+                <div className="flex items-center gap-3 text-red-600">
+                  <AlertTriangle size={24} />
+                  <h3 className="text-xl font-bold">Reset Jadwal Supervisi?</h3>
+                </div>
+                <button onClick={() => setIsResetModalOpen(false)} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
+                  <X size={20} className="text-zinc-400" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-zinc-600 leading-relaxed">
+                  Tindakan ini akan <strong>menghapus SEMUA data supervisi</strong> di sekolah Anda.
+                </p>
+                <p className="text-zinc-600 leading-relaxed">
+                  Gunakan fitur ini jika Anda ingin menjadwalkan ulang supervisi dari awal untuk semua guru. Data guru tidak akan dihapus.
+                </p>
+                <p className="text-red-600 text-sm font-medium mt-4">
+                  Peringatan: Tindakan ini tidak dapat dibatalkan!
+                </p>
+              </div>
+              <div className="p-6 bg-zinc-50 border-t border-zinc-100 flex justify-end gap-3">
+                <button
+                  onClick={() => setIsResetModalOpen(false)}
+                  disabled={isResetting}
+                  className="px-4 py-2 text-zinc-600 font-medium hover:bg-zinc-100 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleReset}
+                  disabled={isResetting}
+                  className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {isResetting ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Mereset...
+                    </>
+                  ) : (
+                    "Ya, Hapus Semua Jadwal"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

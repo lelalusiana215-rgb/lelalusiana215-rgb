@@ -4,6 +4,7 @@ import { ShieldCheck, School, MapPin, FileText, Save, User as UserIcon, Sparkles
 import { motion } from "motion/react";
 import { db, auth } from "../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { Link } from "react-router-dom";
 
 enum OperationType {
   CREATE = 'create',
@@ -199,9 +200,18 @@ export default function PrincipalProfile({ user }: { user: User }) {
           <h2 className="text-3xl font-serif italic font-bold text-zinc-900">Data Sekolah</h2>
           <p className="text-zinc-500 mt-1">Kelola informasi sekolah, logo, dan profil kepala sekolah.</p>
         </div>
-        <div className="flex items-center space-x-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl border border-emerald-100">
-          <ShieldCheck size={18} />
-          <span className="text-sm font-bold uppercase tracking-wider">Status: {user.status}</span>
+        <div className="flex items-center space-x-3">
+          <Link 
+            to="/program-supervisi"
+            className="flex items-center space-x-2 bg-white text-emerald-600 px-4 py-2 rounded-xl border border-emerald-200 hover:bg-emerald-50 transition-colors font-bold shadow-sm"
+          >
+            <FileText size={18} />
+            <span className="hidden sm:inline">Susun Program Supervisi</span>
+          </Link>
+          <div className="flex items-center space-x-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl border border-emerald-100">
+            <ShieldCheck size={18} />
+            <span className="text-sm font-bold uppercase tracking-wider">Status: {user.status}</span>
+          </div>
         </div>
       </div>
 

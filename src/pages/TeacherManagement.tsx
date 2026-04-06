@@ -3,58 +3,7 @@ import { User } from "../types";
 import { Plus, Search, Mail, User as UserIcon, MoreVertical, Trash2, Edit2, X, AlertCircle, Key } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { db, auth } from "../firebase";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, setDoc, getDoc } from "firebase/firestore";
-
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | null | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    tenantId: string | null | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, setDoc, getDoc, getDocs, writeBatch } from "firebase/firestore";
 
 export default function TeacherManagement({ user }: { user: User }) {
   const [teachers, setTeachers] = useState<any[]>([]);
@@ -120,7 +69,10 @@ export default function TeacherManagement({ user }: { user: User }) {
           });
           setMessage({ type: "success", text: "Data guru berhasil diperbarui." });
         } catch (err) {
-          handleFirestoreError(err, OperationType.UPDATE, `users/${editingTeacher.id}`);
+          console.error("Error updating teacher:", err);
+          setError("Gagal memperbarui data guru.");
+          setSubmitting(false);
+          return;
         }
       } else {
         // 1. Create Auth User via Backend
@@ -164,7 +116,10 @@ export default function TeacherManagement({ user }: { user: User }) {
               });
             }
           } catch (err) {
-            handleFirestoreError(err, OperationType.CREATE, `users/${data.id}`);
+            console.error("Error creating user document:", err);
+            setError("Gagal menyimpan data guru.");
+            setSubmitting(false);
+            return;
           }
 
           // 3. Create initial supervision if schedule provided
@@ -188,7 +143,7 @@ export default function TeacherManagement({ user }: { user: User }) {
                 created_at: serverTimestamp()
               });
             } catch (err) {
-              handleFirestoreError(err, OperationType.CREATE, "supervisions");
+              console.error("Error creating supervision:", err);
             }
           }
           setMessage({ type: "success", text: "Guru berhasil ditambahkan." });
@@ -241,16 +196,41 @@ export default function TeacherManagement({ user }: { user: User }) {
     
     setMessage({ type: "", text: "" });
     try {
+      // 1. Delete credentials
       try {
         await deleteDoc(doc(db, "teacher_credentials", teacherToDelete));
       } catch (e) {
         console.log("No credentials to delete or permission denied");
       }
+
+      // 2. Delete all supervisions for this teacher
+      const supervisionsRef = collection(db, "supervisions");
+      const q = query(
+        supervisionsRef, 
+        where("school_id", "==", user.school_id) // Query by school_id only to avoid composite index error
+      );
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const deletePromises: Promise<void>[] = [];
+        querySnapshot.forEach((docSnap) => {
+          if (docSnap.data().teacher_id === teacherToDelete) {
+            deletePromises.push(deleteDoc(doc(db, "supervisions", docSnap.id)));
+          }
+        });
+        
+        if (deletePromises.length > 0) {
+          await Promise.all(deletePromises);
+        }
+      }
+
+      // 3. Delete user profile
       await deleteDoc(doc(db, "users", teacherToDelete));
-      setMessage({ type: "success", text: "Guru berhasil dihapus." });
+      
+      setMessage({ type: "success", text: "Guru dan data supervisi terkait berhasil dihapus." });
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `users/${teacherToDelete}`);
-      setMessage({ type: "error", text: "Gagal menghapus guru." });
+      console.error("Error deleting teacher or supervisions:", err);
+      setMessage({ type: "error", text: "Gagal menghapus guru atau data supervisi. Pastikan Anda memiliki izin." });
     } finally {
       setTeacherToDelete(null);
     }

@@ -97,7 +97,7 @@ service cloud.firestore {
         (request.auth.uid == resource.data.principal_id && getUserData().status == 'ACTIVE') ||
         isAdmin()
       );
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isPrincipal() && resource.data.school_id == getUserData().school_id);
     }
 
     match /schedules/{scheduleId} {
