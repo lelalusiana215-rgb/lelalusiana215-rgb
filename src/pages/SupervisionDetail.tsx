@@ -1032,9 +1032,47 @@ export default function SupervisionDetail({ user }: { user: User }) {
   ];
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-8 pb-20 print:pb-0 print:space-y-0">
+      {/* COVER PAGE (Only visible when printing) */}
+      <div className="hidden print:flex p-[20mm] min-h-[297mm] flex-col items-center justify-center text-black font-serif text-center relative bg-white">
+        <div className="absolute top-[20mm] left-[20mm] right-[20mm] bottom-[20mm] border-4 border-double border-black pointer-events-none"></div>
+        
+        <div className="space-y-8 z-10 w-full px-12">
+          <h1 className="text-3xl font-bold uppercase leading-relaxed">
+            LAPORAN HASIL AKHIR<br />
+            SUPERVISI AKADEMIK
+          </h1>
+          
+          <div className="flex justify-center items-center gap-8 py-12">
+            {(school?.logo_gov || supervision.logo_gov) && (
+              <img src={school?.logo_gov || supervision.logo_gov} alt="Logo Pemerintah" className="w-32 h-32 object-contain" referrerPolicy="no-referrer" />
+            )}
+            {(school?.logo_school || supervision.logo_school) && (
+              <img src={school?.logo_school || supervision.logo_school} alt="Logo Sekolah" className="w-32 h-32 object-contain" referrerPolicy="no-referrer" />
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xl">Disusun Oleh:</p>
+            <p className="text-2xl font-bold uppercase">{supervision.teacher_name}</p>
+            <p className="text-xl">NIP. {supervision.teacher_nip || '-'}</p>
+          </div>
+
+          <div className="pt-12 space-y-2">
+            <p className="text-xl">Supervisor:</p>
+            <p className="text-2xl font-bold uppercase">{supervision.principal_name}</p>
+            <p className="text-xl">NIP. {supervision.principal_nip || '-'}</p>
+          </div>
+
+          <div className="pt-24 space-y-2">
+            <h3 className="text-2xl font-bold uppercase">{school?.name || supervision.school_name || "SEKOLAH DASAR"}</h3>
+            <p className="text-xl">TAHUN PELAJARAN {new Date(supervision.date).getFullYear()}/{new Date(supervision.date).getFullYear() + 1}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div className="flex items-center space-x-4">
           <button onClick={() => navigate('/supervisi')} className="p-2 hover:bg-white rounded-xl border border-black/5 shadow-sm transition-all">
             <ChevronLeft size={20} />
@@ -1049,7 +1087,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
             </div>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3">
           <AnimatePresence>
             {message && (
               <motion.div
@@ -1068,27 +1106,34 @@ export default function SupervisionDetail({ user }: { user: User }) {
             className="flex items-center space-x-2 px-4 py-2 bg-white border border-black/5 rounded-xl shadow-sm hover:bg-zinc-50 transition-all text-sm font-bold text-emerald-600"
           >
             <HelpCircle size={18} />
-            <span>Panduan Langkah</span>
+            <span className="hidden sm:inline">Panduan</span>
           </button>
           <button 
             onClick={generatePDF}
             className="flex items-center space-x-2 px-4 py-2 bg-white border border-black/5 rounded-xl shadow-sm hover:bg-zinc-50 transition-all text-sm font-bold"
           >
             <Printer size={18} />
-            <span>Rekap PDF</span>
+            <span className="hidden sm:inline">Rekap PDF</span>
           </button>
           <button 
             onClick={generateWord}
             className="flex items-center space-x-2 px-4 py-2 bg-white border border-black/5 rounded-xl shadow-sm hover:bg-zinc-50 transition-all text-sm font-bold"
           >
             <Download size={18} />
-            <span>Rekap Word</span>
+            <span className="hidden sm:inline">Rekap Word</span>
           </button>
           <div className="flex items-center bg-white border border-black/5 rounded-xl shadow-sm overflow-hidden">
             <div className="px-3 py-2 border-r border-black/5 flex items-center space-x-2">
               <FileText size={18} className="text-zinc-400" />
-              <span className="text-sm font-bold">Cover:</span>
+              <span className="text-sm font-bold hidden sm:inline">Cover:</span>
             </div>
+            <button 
+              onClick={() => window.print()}
+              className="px-3 py-2 hover:bg-zinc-50 transition-all text-[10px] font-bold uppercase tracking-tighter border-r border-black/5"
+              title="Cetak Jilid (Print)"
+            >
+              Print
+            </button>
             <button 
               onClick={generateCoverPDF}
               className="px-3 py-2 hover:bg-zinc-50 transition-all text-[10px] font-bold uppercase tracking-tighter border-r border-black/5"
@@ -1108,13 +1153,13 @@ export default function SupervisionDetail({ user }: { user: User }) {
             className="flex items-center space-x-2 px-6 py-2 bg-[#141414] text-white rounded-xl shadow-lg hover:bg-zinc-800 transition-all text-sm font-bold disabled:opacity-50"
           >
             <Save size={18} />
-            <span>{saving ? 'Menyimpan...' : 'Simpan Progres'}</span>
+            <span className="hidden sm:inline">{saving ? 'Menyimpan...' : 'Simpan'}</span>
           </button>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-white p-6 rounded-3xl border border-black/5 shadow-sm">
+      <div className="bg-white p-6 rounded-3xl border border-black/5 shadow-sm print:hidden">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold text-zinc-900 flex items-center">
             <Play size={16} className="mr-2 text-emerald-500" />
@@ -1144,7 +1189,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
       </div>
 
       {/* Stage Navigation */}
-      <div className="flex items-center space-x-2 bg-white p-2 rounded-2xl border border-black/5 shadow-sm overflow-x-auto no-scrollbar">
+      <div className="flex items-center space-x-2 bg-white p-2 rounded-2xl border border-black/5 shadow-sm overflow-x-auto no-scrollbar print:hidden">
         {stages.map((s) => (
           <button
             key={s.id}
@@ -1164,7 +1209,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
           initial={{ opacity: 0, x: 10 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -10 }}
-          className="bg-white rounded-3xl border border-black/5 shadow-sm overflow-hidden"
+          className="bg-white rounded-3xl border border-black/5 shadow-sm overflow-hidden print:hidden"
         >
           {activeStage === 1 && (
             <div className="p-8">
@@ -1600,7 +1645,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
       </AnimatePresence>
 
       {/* Quick Stats Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-black/5 px-8 py-3 flex items-center justify-center space-x-6 z-20 overflow-x-auto no-scrollbar">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-black/5 px-8 py-3 flex items-center justify-center space-x-6 z-20 overflow-x-auto no-scrollbar print:hidden">
         <div className="flex items-center space-x-2 whitespace-nowrap">
           <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]"></div>
           <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">S1: {calculateScore(1, stage1).toFixed(0)}%</span>

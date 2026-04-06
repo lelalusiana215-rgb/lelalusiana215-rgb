@@ -24,9 +24,9 @@ function Layout({ children, user, onLogout }: { children: React.ReactNode, user:
   const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-[#F5F5F0] flex">
+    <div className="min-h-screen bg-[#F5F5F0] flex print:bg-white">
       {/* Sidebar */}
-      <aside className={`bg-[#141414] text-white transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} flex flex-col`}>
+      <aside className={`bg-[#141414] text-white transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} flex flex-col print:hidden`}>
         <div className="p-6 flex items-center justify-between border-b border-white/10">
           {isSidebarOpen && <span className="font-serif italic text-xl font-bold tracking-tight">e-Supervisi360</span>}
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-white/10 rounded">
@@ -72,7 +72,7 @@ function Layout({ children, user, onLogout }: { children: React.ReactNode, user:
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        <header className="bg-white border-b border-black/5 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+        <header className="bg-white border-b border-black/5 px-8 py-4 flex items-center justify-between sticky top-0 z-10 print:hidden">
           <h1 className="text-lg font-medium text-zinc-800">
             {location.pathname === '/' ? 'Dashboard Overview' : 
              location.pathname === '/supervisi' ? 'Daftar Supervisi' :
@@ -83,7 +83,7 @@ function Layout({ children, user, onLogout }: { children: React.ReactNode, user:
             <span className="text-xs font-mono text-zinc-400 uppercase tracking-widest">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
           </div>
         </header>
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-8 max-w-7xl mx-auto print:p-0 print:max-w-none">
           {children}
         </div>
       </main>

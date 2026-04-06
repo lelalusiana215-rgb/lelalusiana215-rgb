@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { User, School } from "../types";
 import { db } from "../firebase";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
-import { ArrowLeft, Printer, Loader2 } from "lucide-react";
+import { ArrowLeft, Printer, Loader2, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import Bab1 from "../components/supervisi/Bab1";
 import Bab2 from "../components/supervisi/Bab2";
@@ -63,8 +63,60 @@ export default function ProgramSupervisi({ user }: { user: User }) {
   const academicYear = `${currentYear}/${currentYear + 1}`;
   const printDate = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
+  const generateWord = () => {
+    const element = document.getElementById("program-supervisi-content");
+    if (!element) return;
+    
+    // Create a clone to manipulate
+    const clone = element.cloneNode(true) as HTMLElement;
+    
+    // Remove print:hidden elements from clone
+    const hiddenElements = clone.querySelectorAll('.print\\:hidden');
+    hiddenElements.forEach(el => el.parentNode?.removeChild(el));
+
+    // Handle page breaks for Word
+    const pageBreakElements = clone.querySelectorAll('.print\\:break-after-page');
+    pageBreakElements.forEach(el => {
+      el.classList.add('page-break');
+    });
+    
+    const html = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset='utf-8'>
+        <title>Program Supervisi</title>
+        <style>
+          body { font-family: 'Times New Roman', serif; }
+          h1, h2, h3, h4, h5, h6 { text-align: center; }
+          table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+          th, td { border: 1px solid black; padding: 8px; }
+          .text-center { text-align: center; }
+          .font-bold { font-weight: bold; }
+          .mb-4 { margin-bottom: 16px; }
+          .mt-8 { margin-top: 32px; }
+          .page-break { page-break-after: always; }
+        </style>
+      </head>
+      <body>
+        ${clone.innerHTML}
+      </body>
+      </html>
+    `;
+    
+    const blob = new Blob(['\ufeff', html], {
+      type: 'application/msword'
+    });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'Program_Supervisi.doc';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <div className="bg-zinc-100 min-h-screen pb-12">
+    <div className="bg-zinc-100 min-h-screen pb-12 print:bg-white print:pb-0">
       {/* Action Bar (Hidden when printing) */}
       <div className="print:hidden bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="flex items-center space-x-4">
@@ -73,18 +125,63 @@ export default function ProgramSupervisi({ user }: { user: User }) {
           </Link>
           <h1 className="text-lg font-bold text-zinc-800">Program Supervisi</h1>
         </div>
-        <button 
-          onClick={() => window.print()}
-          className="flex items-center space-x-2 bg-emerald-600 text-white px-6 py-2.5 rounded-xl shadow-sm hover:bg-emerald-700 transition-all font-bold"
-        >
-          <Printer size={18} />
-          <span>Cetak Dokumen</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button 
+            onClick={() => window.print()}
+            className="flex items-center space-x-2 bg-white border border-black/5 text-zinc-700 px-4 py-2 rounded-xl shadow-sm hover:bg-zinc-50 transition-all font-bold text-sm"
+          >
+            <Printer size={18} />
+            <span>Simpan PDF / Print</span>
+          </button>
+          <button 
+            onClick={generateWord}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-xl shadow-sm hover:bg-blue-700 transition-all font-bold text-sm"
+          >
+            <Download size={18} />
+            <span>Simpan Word</span>
+          </button>
+        </div>
       </div>
 
       {/* Document Container */}
-      <div className="max-w-[210mm] mx-auto mt-8 bg-white shadow-xl print:shadow-none print:mt-0 print:max-w-none">
+      <div id="program-supervisi-content" className="max-w-[210mm] mx-auto mt-8 bg-white shadow-xl print:shadow-none print:mt-0 print:max-w-none">
         
+        {/* COVER PAGE */}
+        <div className="p-[20mm] min-h-[297mm] flex flex-col items-center justify-center print:p-0 print:break-after-page text-black font-serif text-center relative">
+          <div className="absolute top-[20mm] left-[20mm] right-[20mm] bottom-[20mm] border-4 border-double border-black pointer-events-none"></div>
+          
+          <div className="space-y-8 z-10 w-full px-12">
+            <h1 className="text-3xl font-bold uppercase leading-relaxed">
+              PROGRAM SUPERVISI<br />
+              KEPALA SEKOLAH
+            </h1>
+            
+            <h2 className="text-2xl font-bold uppercase">
+              TAHUN PELAJARAN {academicYear}
+            </h2>
+
+            <div className="flex justify-center items-center gap-8 py-12">
+              {school.logo_gov && (
+                <img src={school.logo_gov} alt="Logo Pemerintah" className="w-32 h-32 object-contain" referrerPolicy="no-referrer" />
+              )}
+              {school.logo_school && (
+                <img src={school.logo_school} alt="Logo Sekolah" className="w-32 h-32 object-contain" referrerPolicy="no-referrer" />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xl">Oleh:</p>
+              <p className="text-2xl font-bold uppercase">{user.name}</p>
+              <p className="text-xl">NIP. {user.nip || '-'}</p>
+            </div>
+
+            <div className="pt-24 space-y-2">
+              <h3 className="text-2xl font-bold uppercase">{school.name}</h3>
+              <p className="text-xl">{school.address}</p>
+            </div>
+          </div>
+        </div>
+
         {/* PAGE 1: Lembar Pengesahan */}
         <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
           <h1 className="text-center font-bold text-xl mb-12">LEMBAR PENGESAHAN</h1>
