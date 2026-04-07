@@ -8,7 +8,6 @@ import Bab1 from "../components/supervisi/Bab1";
 import Bab2 from "../components/supervisi/Bab2";
 import Bab3 from "../components/supervisi/Bab3";
 import Bab4 from "../components/supervisi/Bab4";
-import Lampiran from "../components/supervisi/Lampiran";
 import Lampiran2 from "../components/supervisi/Lampiran2";
 
 export default function ProgramSupervisi({ user }: { user: User }) {
@@ -36,7 +35,30 @@ export default function ProgramSupervisi({ user }: { user: User }) {
         );
         const querySnapshot = await getDocs(q);
         const teachersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setTeachers(teachersData);
+
+        // Fetch supervisions to get actual dates
+        const supervisionsQ = query(
+          collection(db, "supervisions"),
+          where("school_id", "==", user.school_id)
+        );
+        const supervisionsSnapshot = await getDocs(supervisionsQ);
+        const supervisionsData = supervisionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+
+        // Combine teacher data with their supervision dates
+        const combinedTeachers = teachersData.map(teacher => {
+          const supervision = supervisionsData.find(s => s.teacher_id === teacher.id);
+          return {
+            ...teacher,
+            stage1_date: supervision?.stage1_date || null,
+            stage2_date: supervision?.stage2_date || null,
+            stage3_date: supervision?.stage3_date || null,
+            stage4_date: supervision?.stage4_date || null,
+            supervision_date: supervision?.stage3_date || supervision?.date || null,
+            stage5_data: supervision?.stage5_data || null
+          };
+        });
+
+        setTeachers(combinedTeachers);
       } catch (err) {
         console.error("Error fetching data for program supervisi:", err);
       } finally {
@@ -322,6 +344,11 @@ export default function ProgramSupervisi({ user }: { user: User }) {
               <div className="flex justify-between"><span>A. Kesimpulan</span><span>14</span></div>
               <div className="flex justify-between"><span>B. Saran</span><span>14</span></div>
             </div>
+            <div className="flex justify-between mt-4 font-bold"><span>LAMPIRAN-LAMPIRAN</span><span></span></div>
+            <div className="pl-6 space-y-2">
+              <div className="flex justify-between"><span>Lampiran 1. Jadwal Supervisi Kelas</span><span>15</span></div>
+              <div className="flex justify-between"><span>Lampiran 2. Rencana Tindak Lanjut</span><span>16</span></div>
+            </div>
           </div>
           <div className="text-center mt-12">iii</div>
         </div>
@@ -336,34 +363,45 @@ export default function ProgramSupervisi({ user }: { user: User }) {
           <h1 className="text-center font-bold text-xl mb-2">LAMPIRAN 1</h1>
           <h2 className="text-center font-bold text-lg mb-8">JADWAL SUPERVISI KELAS OLEH KEPALA SEKOLAH<br/>TAHUN PELAJARAN {academicYear} SEMESTER GANJIL</h2>
           
-          <table className="w-full border-collapse border border-black text-sm">
+          <table className="w-full border-collapse border border-black text-[10px]">
             <thead>
               <tr>
-                <th className="border border-black p-2 text-center w-12">No</th>
-                <th className="border border-black p-2 text-center">Nama Guru</th>
-                <th className="border border-black p-2 text-center">NIP</th>
-                <th className="border border-black p-2 text-center">Kelas/Mapel</th>
-                <th className="border border-black p-2 text-center">Hari/Tanggal</th>
-                <th className="border border-black p-2 text-center w-24">Ket</th>
+                <th className="border border-black p-1 text-center w-8" rowSpan={2}>No</th>
+                <th className="border border-black p-1 text-center" rowSpan={2}>Nama Guru</th>
+                <th className="border border-black p-1 text-center" rowSpan={2}>NIP</th>
+                <th className="border border-black p-1 text-center" rowSpan={2}>Pangkat/Gol</th>
+                <th className="border border-black p-1 text-center w-16" rowSpan={2}>Kelas</th>
+                <th className="border border-black p-1 text-center" colSpan={4}>Jadwal Tahapan Supervisi</th>
+                <th className="border border-black p-1 text-center w-12" rowSpan={2}>Ket</th>
+              </tr>
+              <tr>
+                <th className="border border-black p-1 text-center w-20">Administrasi</th>
+                <th className="border border-black p-1 text-center w-20">Perencanaan</th>
+                <th className="border border-black p-1 text-center w-20">Pelaksanaan</th>
+                <th className="border border-black p-1 text-center w-20">Refleksi</th>
               </tr>
             </thead>
             <tbody>
               {teachers.length > 0 ? teachers.map((teacher, index) => {
-                // Generate a dummy date for the schedule (e.g., sequentially next month)
-                const date = new Date();
-                date.setMonth(date.getMonth() + 1);
-                date.setDate(date.getDate() + index);
-                const dayName = date.toLocaleDateString('id-ID', { weekday: 'long' });
-                const dateString = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                const formatDate = (dateStr: string | null) => {
+                  if (!dateStr) return '-';
+                  const date = new Date(dateStr);
+                  if (isNaN(date.getTime())) return '-';
+                  return date.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                };
                 
                 return (
                   <tr key={teacher.id}>
-                    <td className="border border-black p-2 text-center">{index + 1}</td>
-                    <td className="border border-black p-2">{teacher.name}</td>
-                    <td className="border border-black p-2 text-center">{teacher.nip || '-'}</td>
-                    <td className="border border-black p-2 text-center">{teacher.teaching_class || '-'}</td>
-                    <td className="border border-black p-2">{dayName}, {dateString}</td>
-                    <td className="border border-black p-2"></td>
+                    <td className="border border-black p-1 text-center">{index + 1}</td>
+                    <td className="border border-black p-1">{teacher.name}</td>
+                    <td className="border border-black p-1 text-center">{teacher.nip || '-'}</td>
+                    <td className="border border-black p-1 text-center">{teacher.rank_grade || '-'}</td>
+                    <td className="border border-black p-1 text-center">{teacher.teaching_class || '-'}</td>
+                    <td className="border border-black p-1 text-center">{formatDate(teacher.stage1_date)}</td>
+                    <td className="border border-black p-1 text-center">{formatDate(teacher.stage2_date)}</td>
+                    <td className="border border-black p-1 text-center font-bold">{formatDate(teacher.stage3_date)}</td>
+                    <td className="border border-black p-1 text-center">{formatDate(teacher.stage4_date)}</td>
+                    <td className="border border-black p-1"></td>
                   </tr>
                 );
               }) : (
@@ -385,8 +423,7 @@ export default function ProgramSupervisi({ user }: { user: User }) {
           </div>
         </div>
 
-        <Lampiran user={user} school={school} teachers={teachers} academicYear={academicYear} printDate={printDate} />
-        <Lampiran2 user={user} school={school} printDate={printDate} academicYear={academicYear} />
+        <Lampiran2 user={user} school={school} printDate={printDate} academicYear={academicYear} teachers={teachers} />
 
       </div>
     </div>
