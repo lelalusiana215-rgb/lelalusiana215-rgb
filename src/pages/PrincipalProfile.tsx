@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { User } from "../types";
-import { ShieldCheck, School, MapPin, FileText, Save, User as UserIcon, Sparkles, Key } from "lucide-react";
+import { ShieldCheck, School, MapPin, FileText, Save, User as UserIcon, Sparkles, Key, ArrowLeft, PenTool } from "lucide-react";
 import { motion } from "motion/react";
 import { db, auth } from "../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -365,27 +365,77 @@ export default function PrincipalProfile({ user }: { user: User }) {
 
         {/* AI Configuration Section */}
         <div className="bg-white p-8 rounded-3xl border border-black/5 shadow-sm space-y-6">
-          <h3 className="text-lg font-bold flex items-center">
-            <Sparkles className="mr-2 text-purple-500" size={20} />
-            Konfigurasi AI (Gemini)
-          </h3>
-          <p className="text-sm text-zinc-500">
-            Gunakan tombol di bawah ini untuk mengatur atau mengganti API Key Gemini Anda. 
-            Pastikan Anda menggunakan API Key dari akun yang valid untuk mendapatkan rekomendasi supervisi otomatis.
-          </p>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold flex items-center">
+              <Sparkles className="mr-2 text-purple-500" size={20} />
+              Konfigurasi AI (Gemini)
+            </h3>
+            <a 
+              href="https://aistudio.google.com/app/apikey" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-[10px] font-bold text-purple-600 hover:underline flex items-center"
+            >
+              Dapatkan API Key di Google AI Studio
+              <ArrowLeft size={10} className="ml-1 rotate-180" />
+            </a>
+          </div>
           
-          {showApiKeyInput ? (
-            <div className="space-y-4 p-6 bg-purple-50 rounded-2xl border border-purple-100">
+          <div className="p-6 bg-purple-50 rounded-2xl border border-purple-100 space-y-4">
+            <p className="text-sm text-purple-900 leading-relaxed">
+              Fitur AI digunakan untuk memberikan rekomendasi supervisi otomatis. 
+              Anda dapat menggunakan API Key dari Google AI Studio untuk mengaktifkan fitur ini.
+            </p>
+            
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    if (typeof (window as any).aistudio !== 'undefined' && (window as any).aistudio.openSelectKey) {
+                      await (window as any).aistudio.openSelectKey();
+                      setMessage({ type: "success", text: "Dialog pemilihan API Key berhasil dibuka." });
+                    } else {
+                      setShowApiKeyInput(true);
+                    }
+                  } catch (err) {
+                    console.error("Error opening API Key dialog:", err);
+                    setShowApiKeyInput(true);
+                  }
+                }}
+                className="flex items-center space-x-2 bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 transition-all font-bold shadow-lg shadow-purple-200"
+              >
+                <Key size={18} />
+                <span>Pilih API Key (Akun Google)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+                className="flex items-center space-x-2 bg-white text-purple-600 px-6 py-3 rounded-xl border border-purple-200 hover:bg-purple-50 transition-all font-bold"
+              >
+                <PenTool size={18} />
+                <span>Input Manual</span>
+              </button>
+            </div>
+          </div>
+          
+          {showApiKeyInput && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4 p-6 bg-zinc-50 rounded-2xl border border-zinc-200"
+            >
               <div className="space-y-2">
-                <label className="text-xs font-bold text-purple-700 uppercase tracking-wider">API Key Gemini Kustom</label>
+                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">API Key Gemini Kustom</label>
                 <input
                   type="password"
                   value={customApiKey}
                   onChange={(e) => setCustomApiKey(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="w-full px-4 py-3 bg-white border border-purple-200 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  placeholder="Masukkan API Key Anda di sini..."
+                  className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 transition-all"
                 />
-                <p className="text-[10px] text-purple-600">API Key akan disimpan secara lokal di browser Anda. Kosongkan untuk menggunakan API Key bawaan sistem.</p>
+                <p className="text-[10px] text-zinc-400 italic">API Key ini akan disimpan secara lokal di browser Anda. Gunakan jika fitur "Pilih API Key" tidak tersedia.</p>
               </div>
               <div className="flex space-x-2">
                 <button
@@ -400,9 +450,9 @@ export default function PrincipalProfile({ user }: { user: User }) {
                     }
                     setShowApiKeyInput(false);
                   }}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 transition-all"
+                  className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all"
                 >
-                  Simpan API Key
+                  Simpan
                 </button>
                 <button
                   type="button"
@@ -412,28 +462,7 @@ export default function PrincipalProfile({ user }: { user: User }) {
                   Batal
                 </button>
               </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  if (typeof (window as any).aistudio !== 'undefined' && (window as any).aistudio.openSelectKey) {
-                    await (window as any).aistudio.openSelectKey();
-                    setMessage({ type: "success", text: "API Key berhasil dipilih." });
-                  } else {
-                    setShowApiKeyInput(true);
-                  }
-                } catch (err) {
-                  console.error("Error opening API Key dialog:", err);
-                  setShowApiKeyInput(true);
-                }
-              }}
-              className="flex items-center space-x-2 bg-purple-50 text-purple-600 px-6 py-3 rounded-xl border border-purple-100 hover:bg-purple-100 transition-all font-bold"
-            >
-              <Key size={18} />
-              <span>Ganti API Key</span>
-            </button>
+            </motion.div>
           )}
         </div>
 
