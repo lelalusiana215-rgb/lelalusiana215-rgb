@@ -29,18 +29,18 @@ export default function Lampiran2({ user, school, printDate, academicYear, teach
         </thead>
         <tbody>
           {teachers.length > 0 ? teachers.map((teacher, index) => {
-            const stage5Data = typeof teacher.stage5_data === 'string' ? JSON.parse(teacher.stage5_data) : teacher.stage5_data;
-            const notes = stage5Data?.notes || "-";
+            const stage7Data = typeof teacher.stage7_data === 'string' ? JSON.parse(teacher.stage7_data) : teacher.stage7_data;
+            const notes = stage7Data?.notes || "-";
             
             return (
               <tr key={teacher.id}>
                 <td className="border border-black p-1 text-center">{index + 1}</td>
                 <td className="border border-black p-1 font-bold">{teacher.name}</td>
-                <td className="border border-black p-1 text-center">-</td>
-                <td className="border border-black p-1 text-center">-</td>
-                <td className="border border-black p-1">{notes}</td>
-                <td className="border border-black p-1 text-center">-</td>
-                <td className="border border-black p-1 text-center">-</td>
+                <td className="border border-black p-1 text-center">{stage7Data?.items?.['identifikasi_masalah'] || "-"}</td>
+                <td className="border border-black p-1 text-center">{stage7Data?.items?.['rekomendasi'] || "-"}</td>
+                <td className="border border-black p-1">{stage7Data?.items?.['rtl'] || notes}</td>
+                <td className="border border-black p-1 text-center">{stage7Data?.items?.['ukuran_keberhasilan'] || "-"}</td>
+                <td className="border border-black p-1 text-center">{stage7Data?.items?.['waktu'] || "-"}</td>
               </tr>
             );
           }) : (

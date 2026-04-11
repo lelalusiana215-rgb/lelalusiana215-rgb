@@ -36,11 +36,15 @@ export interface Supervision {
   stage3_data?: string;
   stage4_data?: string;
   stage5_data?: string;
+  stage6_data?: string;
+  stage7_data?: string;
   stage1_date?: string;
   stage2_date?: string;
   stage3_date?: string;
   stage4_date?: string;
   stage5_date?: string;
+  stage6_date?: string;
+  stage7_date?: string;
   final_score?: number;
   recommendations?: string;
   school_name?: string;

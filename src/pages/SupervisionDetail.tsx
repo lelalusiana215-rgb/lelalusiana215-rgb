@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { User, Supervision, StageData } from "../types";
 import { 
@@ -10,7 +10,8 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { 
   STAGE1_INSTRUMENTS, STAGE2_INSTRUMENTS, 
-  STAGE3_INSTRUMENTS, STAGE4_INSTRUMENTS, STAGE5_INSTRUMENTS 
+  STAGE3_INSTRUMENTS, STAGE4_INSTRUMENTS, STAGE5_INSTRUMENTS,
+  PRE_OBSERVATION_INSTRUMENTS, POST_OBSERVATION_INSTRUMENTS
 } from "../constants";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
@@ -29,7 +30,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: React.ReactNode } | null>(null);
   const [showGuide, setShowGuide] = useState(false);
 
   // Stage States
@@ -38,6 +39,8 @@ export default function SupervisionDetail({ user }: { user: User }) {
   const [stage3, setStage3] = useState<StageData>({ items: {}, notes: "" });
   const [stage4, setStage4] = useState<StageData>({ items: {}, notes: "" });
   const [stage5, setStage5] = useState<StageData>({ items: {}, notes: "" });
+  const [stage6, setStage6] = useState<StageData>({ items: {}, notes: "" });
+  const [stage7, setStage7] = useState<StageData>({ items: {}, notes: "" });
 
   // Timer for Stage 3
   const [timer, setTimer] = useState(0);
@@ -56,6 +59,8 @@ export default function SupervisionDetail({ user }: { user: User }) {
         if (data.stage3_data) setStage3(typeof data.stage3_data === 'string' ? JSON.parse(data.stage3_data) : data.stage3_data);
         if (data.stage4_data) setStage4(typeof data.stage4_data === 'string' ? JSON.parse(data.stage4_data) : data.stage4_data);
         if (data.stage5_data) setStage5(typeof data.stage5_data === 'string' ? JSON.parse(data.stage5_data) : data.stage5_data);
+        if (data.stage6_data) setStage6(typeof data.stage6_data === 'string' ? JSON.parse(data.stage6_data) : data.stage6_data);
+        if (data.stage7_data) setStage7(typeof data.stage7_data === 'string' ? JSON.parse(data.stage7_data) : data.stage7_data);
 
         // Fetch school data
         if (data.school_id) {
@@ -94,10 +99,15 @@ export default function SupervisionDetail({ user }: { user: User }) {
       let instruments: any[] = [];
       if (stage === 2) instruments = STAGE2_INSTRUMENTS;
       else if (stage === 3) instruments = STAGE3_INSTRUMENTS;
-      else if (stage === 4) instruments = STAGE4_INSTRUMENTS;
-      else if (stage === 5) instruments = STAGE5_INSTRUMENTS;
+      else if (stage === 4) instruments = PRE_OBSERVATION_INSTRUMENTS;
+      else if (stage === 5) instruments = STAGE4_INSTRUMENTS;
+      else if (stage === 6) instruments = POST_OBSERVATION_INSTRUMENTS;
+      else if (stage === 7) instruments = STAGE5_INSTRUMENTS;
       
       if (instruments.length === 0) return 0;
+      // Interview stages (4 & 6) don't have scores 1-4
+      if (stage === 4 || stage === 6) return 0;
+
       const sum = instruments.reduce((acc, inst) => acc + (Number(data.items[inst.id]) || 0), 0);
       const max = instruments.length * 4;
       const score = (sum / max) * 100;
@@ -115,25 +125,27 @@ export default function SupervisionDetail({ user }: { user: User }) {
       else if (activeStage === 2) currentData = stage2;
       else if (activeStage === 3) currentData = stage3;
       else if (activeStage === 4) currentData = stage4;
-      else currentData = stage5;
+      else if (activeStage === 5) currentData = stage5;
+      else if (activeStage === 6) currentData = stage6;
+      else currentData = stage7;
 
       const score = calculateScore(activeStage, currentData);
-      const status = statusOverride || (activeStage === 5 ? 'SELESAI' : 'PROSES');
+      const status = statusOverride || (activeStage === 7 ? 'SELESAI' : 'PROSES');
 
       const updateData: any = {
         [`stage${activeStage}_data`]: { ...currentData, score },
         status
       };
 
-      if (activeStage === 5 || status === 'SELESAI') {
+      if (activeStage === 7 || status === 'SELESAI') {
         const s1 = calculateScore(1, stage1);
         const s2 = calculateScore(2, stage2);
         const s3 = calculateScore(3, stage3);
-        const s4 = calculateScore(4, stage4);
         const s5 = calculateScore(5, stage5);
+        const s7 = calculateScore(7, stage7);
         
-        const totalScore = (Number(s1) || 0) + (Number(s2) || 0) + (Number(s3) || 0) + (Number(s4) || 0) + (Number(s5) || 0);
-        updateData.final_score = totalScore / 5;
+        const totalScore = (Number(s1) || 0) + (Number(s2) || 0) + (Number(s3) || 0) + (Number(s5) || 0) + (Number(s7) || 0);
+        updateData.final_score = totalScore / 5; // Only 5 stages have scores
         updateData.recommendations = generateRecommendations(updateData.final_score);
       }
 
@@ -162,10 +174,10 @@ export default function SupervisionDetail({ user }: { user: User }) {
     try {
       // Use custom API key from localStorage if available, then process.env, then import.meta.env
       const customKey = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
-      const apiKey = customKey || (typeof process !== 'undefined' && process.env ? (process.env as any).API_KEY || process.env.GEMINI_API_KEY : (import.meta as any).env.VITE_GEMINI_API_KEY);
+      const apiKey = customKey || (typeof process !== 'undefined' && process.env ? (process.env as any).GEMINI_API_KEY : null);
       
       if (!apiKey) {
-        throw new Error("API Key tidak ditemukan. Silakan atur API Key di menu Data Sekolah.");
+        throw new Error("API Key tidak ditemukan.");
       }
       const ai = new GoogleGenAI({ apiKey });
       
@@ -186,12 +198,20 @@ export default function SupervisionDetail({ user }: { user: User }) {
         currentData = stage3;
         stageName = "Telaah Modul Ajar";
       } else if (activeStage === 4) {
-        instruments = STAGE4_INSTRUMENTS;
+        instruments = PRE_OBSERVATION_INSTRUMENTS;
         currentData = stage4;
+        stageName = "Pra Observasi";
+      } else if (activeStage === 5) {
+        instruments = STAGE4_INSTRUMENTS;
+        currentData = stage5;
         stageName = "Pelaksanaan";
+      } else if (activeStage === 6) {
+        instruments = POST_OBSERVATION_INSTRUMENTS;
+        currentData = stage6;
+        stageName = "Pasca Observasi";
       } else {
         instruments = STAGE5_INSTRUMENTS;
-        currentData = stage5;
+        currentData = stage7;
         stageName = "Refleksi";
       }
 
@@ -200,6 +220,8 @@ export default function SupervisionDetail({ user }: { user: User }) {
         let status = "";
         if (activeStage === 1) {
           status = val ? "Ada/Lengkap" : "Tidak Ada/Belum Lengkap";
+        } else if (activeStage === 4 || activeStage === 6) {
+          status = `Catatan: ${val || "-"}`;
         } else {
           status = `Skor: ${val || 0} dari 4`;
         }
@@ -224,12 +246,25 @@ export default function SupervisionDetail({ user }: { user: User }) {
       else if (activeStage === 2) setStage2({ ...stage2, notes: generatedText });
       else if (activeStage === 3) setStage3({ ...stage3, notes: generatedText });
       else if (activeStage === 4) setStage4({ ...stage4, notes: generatedText });
-      else setStage5({ ...stage5, notes: generatedText });
+      else if (activeStage === 5) setStage5({ ...stage5, notes: generatedText });
+      else if (activeStage === 6) setStage6({ ...stage6, notes: generatedText });
+      else if (activeStage === 7) setStage7({ ...stage7, notes: generatedText });
 
     } catch (err: any) {
       console.error(err);
-      if (err.message?.includes("Requested entity was not found")) {
-        setMessage({ type: "error", text: "API Key tidak valid atau belum dikonfigurasi. Silakan pilih API Key yang valid." });
+      const isKeyError = err.message?.includes("Requested entity was not found") || err.message?.includes("API Key tidak ditemukan");
+      if (isKeyError) {
+        setMessage({ 
+          type: "error", 
+          text: (
+            <span>
+              API Key tidak valid atau belum dikonfigurasi. 
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline ml-1">
+                Klik di sini untuk mendapatkan API Key dari Google AI Studio.
+              </a>
+            </span>
+          )
+        });
         if ((window as any).aistudio?.openSelectKey) {
           (window as any).aistudio.openSelectKey();
         }
@@ -255,8 +290,10 @@ export default function SupervisionDetail({ user }: { user: User }) {
   };
 
   const base64ToUint8Array = (base64: string) => {
+    if (!base64) return new Uint8Array(0);
     try {
-      const binaryString = window.atob(base64.split(',')[1]);
+      const base64Content = base64.includes(',') ? base64.split(',')[1] : base64;
+      const binaryString = window.atob(base64Content);
       const len = binaryString.length;
       const bytes = new Uint8Array(len);
       for (let i = 0; i < len; i++) {
@@ -306,8 +343,10 @@ export default function SupervisionDetail({ user }: { user: User }) {
     if (stageNum === 1) { stageName = "Administrasi Guru"; instruments = STAGE1_INSTRUMENTS; stageData = stage1; }
     else if (stageNum === 2) { stageName = "Telaah Alur Tujuan Pembelajaran (ATP)"; instruments = STAGE2_INSTRUMENTS; stageData = stage2; }
     else if (stageNum === 3) { stageName = "Telaah Modul Ajar"; instruments = STAGE3_INSTRUMENTS; stageData = stage3; }
-    else if (stageNum === 4) { stageName = "Pelaksanaan Pembelajaran"; instruments = STAGE4_INSTRUMENTS; stageData = stage4; }
-    else { stageName = "Refleksi & Rencana Tindak Lanjut"; instruments = STAGE5_INSTRUMENTS; stageData = stage5; }
+    else if (stageNum === 4) { stageName = "Instrumen Percakapan Pra Observasi"; instruments = PRE_OBSERVATION_INSTRUMENTS; stageData = stage4; }
+    else if (stageNum === 5) { stageName = "Pelaksanaan Pembelajaran"; instruments = STAGE4_INSTRUMENTS; stageData = stage5; }
+    else if (stageNum === 6) { stageName = "Instrumen Supervisi Pasca Observasi"; instruments = POST_OBSERVATION_INSTRUMENTS; stageData = stage6; }
+    else { stageName = "Refleksi & Rencana Tindak Lanjut"; instruments = STAGE5_INSTRUMENTS; stageData = stage7; }
 
     doc.setFontSize(14);
     doc.text(`INSTRUMEN SUPERVISI: ${stageName.toUpperCase()}`, 105, lineY + 15, { align: "center" });
@@ -325,11 +364,14 @@ export default function SupervisionDetail({ user }: { user: User }) {
     doc.text(`: ${new Date(supervision.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, 60, lineY + 40);
 
     // Table
+    const isInterview = stageNum === 4 || stageNum === 6;
     const tableBody = instruments.map((inst, index) => {
       const val = stageData.items[inst.id];
       let result = "";
       if (stageNum === 1) {
         result = val ? "Lengkap" : "Tidak Lengkap";
+      } else if (isInterview) {
+        result = val ? val.toString() : "-";
       } else {
         result = val ? val.toString() : "0";
       }
@@ -338,13 +380,13 @@ export default function SupervisionDetail({ user }: { user: User }) {
 
     (doc as any).autoTable({
       startY: lineY + 50,
-      head: [['No', 'Komponen / Indikator', stageNum === 1 ? 'Ketersediaan' : 'Skor (1-4)']],
+      head: [['No', 'Komponen / Indikator', stageNum === 1 ? 'Ketersediaan' : (isInterview ? 'Catatan Supervisor' : 'Skor (1-4)')]],
       body: tableBody,
       theme: 'grid',
       headStyles: { fillColor: [40, 40, 40], halign: 'center' },
       columnStyles: {
         0: { cellWidth: 10, halign: 'center' },
-        2: { cellWidth: 30, halign: 'center' }
+        2: { cellWidth: isInterview ? 80 : 30, halign: isInterview ? 'left' : 'center' }
       }
     });
 
@@ -434,8 +476,10 @@ export default function SupervisionDetail({ user }: { user: User }) {
         ['Administrasi', calculateScore(1, stage1).toFixed(1), stage1.notes || "-"],
         ['Telaah ATP', calculateScore(2, stage2).toFixed(1), stage2.notes || "-"],
         ['Telaah Modul Ajar', calculateScore(3, stage3).toFixed(1), stage3.notes || "-"],
-        ['Pelaksanaan', calculateScore(4, stage4).toFixed(1), stage4.notes || "-"],
-        ['Refleksi', calculateScore(5, stage5).toFixed(1), stage5.notes || "-"],
+        ['Pra Observasi', "-", stage4.notes || "-"],
+        ['Pelaksanaan', calculateScore(5, stage5).toFixed(1), stage5.notes || "-"],
+        ['Pasca Observasi', "-", stage6.notes || "-"],
+        ['Refleksi & RTL', calculateScore(7, stage7).toFixed(1), stage7.notes || "-"],
       ],
       theme: 'grid',
       headStyles: { fillColor: [40, 40, 40] },
@@ -664,8 +708,12 @@ export default function SupervisionDetail({ user }: { user: User }) {
     if (stageNum === 1) { stageName = "Administrasi Guru"; instruments = STAGE1_INSTRUMENTS; stageData = stage1; }
     else if (stageNum === 2) { stageName = "Telaah Alur Tujuan Pembelajaran (ATP)"; instruments = STAGE2_INSTRUMENTS; stageData = stage2; }
     else if (stageNum === 3) { stageName = "Telaah Modul Ajar"; instruments = STAGE3_INSTRUMENTS; stageData = stage3; }
-    else if (stageNum === 4) { stageName = "Pelaksanaan Pembelajaran"; instruments = STAGE4_INSTRUMENTS; stageData = stage4; }
-    else { stageName = "Refleksi & Rencana Tindak Lanjut"; instruments = STAGE5_INSTRUMENTS; stageData = stage5; }
+    else if (stageNum === 4) { stageName = "Instrumen Percakapan Pra Observasi"; instruments = PRE_OBSERVATION_INSTRUMENTS; stageData = stage4; }
+    else if (stageNum === 5) { stageName = "Pelaksanaan Pembelajaran"; instruments = STAGE4_INSTRUMENTS; stageData = stage5; }
+    else if (stageNum === 6) { stageName = "Instrumen Supervisi Pasca Observasi"; instruments = POST_OBSERVATION_INSTRUMENTS; stageData = stage6; }
+    else { stageName = "Refleksi & Rencana Tindak Lanjut"; instruments = STAGE5_INSTRUMENTS; stageData = stage7; }
+
+    const isInterview = stageNum === 4 || stageNum === 6;
 
     const doc = new Document({
       sections: [{
@@ -745,7 +793,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
                 children: [
                   new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "No", bold: true })] })], width: { size: 5, type: WidthType.PERCENTAGE } }),
                   new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Komponen / Indikator", bold: true })] })] }),
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: stageNum === 1 ? "Ketersediaan" : "Skor (1-4)", bold: true })] })], width: { size: 20, type: WidthType.PERCENTAGE } }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: stageNum === 1 ? "Ketersediaan" : (isInterview ? "Catatan Supervisor" : "Skor (1-4)"), bold: true })] })], width: { size: isInterview ? 40 : 20, type: WidthType.PERCENTAGE } }),
                 ],
               }),
               ...instruments.map((inst, index) => {
@@ -753,6 +801,8 @@ export default function SupervisionDetail({ user }: { user: User }) {
                 let result = "";
                 if (stageNum === 1) {
                   result = val ? "Lengkap" : "Tidak Lengkap";
+                } else if (isInterview) {
+                  result = val ? val.toString() : "-";
                 } else {
                   result = val ? val.toString() : "0";
                 }
@@ -930,16 +980,30 @@ export default function SupervisionDetail({ user }: { user: User }) {
               }),
               new TableRow({
                 children: [
-                  new TableCell({ children: [new Paragraph("Pelaksanaan")] }),
-                  new TableCell({ children: [new Paragraph(calculateScore(4, stage4).toFixed(1))] }),
+                  new TableCell({ children: [new Paragraph("Pra Observasi")] }),
+                  new TableCell({ children: [new Paragraph("-")] }),
                   new TableCell({ children: [new Paragraph(stage4.notes || "-")] }),
                 ],
               }),
               new TableRow({
                 children: [
-                  new TableCell({ children: [new Paragraph("Refleksi")] }),
+                  new TableCell({ children: [new Paragraph("Pelaksanaan")] }),
                   new TableCell({ children: [new Paragraph(calculateScore(5, stage5).toFixed(1))] }),
                   new TableCell({ children: [new Paragraph(stage5.notes || "-")] }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph("Pasca Observasi")] }),
+                  new TableCell({ children: [new Paragraph("-")] }),
+                  new TableCell({ children: [new Paragraph(stage6.notes || "-")] }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph("Refleksi & RTL")] }),
+                  new TableCell({ children: [new Paragraph(calculateScore(7, stage7).toFixed(1))] }),
+                  new TableCell({ children: [new Paragraph(stage7.notes || "-")] }),
                 ],
               }),
             ],
@@ -1027,8 +1091,10 @@ export default function SupervisionDetail({ user }: { user: User }) {
     { id: 1, name: "1. Administrasi", icon: <FileText size={18} /> },
     { id: 2, name: "2. Telaah ATP", icon: <PenTool size={18} /> },
     { id: 3, name: "3. Telaah Modul", icon: <PenTool size={18} /> },
-    { id: 4, name: "4. Pelaksanaan", icon: <Play size={18} /> },
-    { id: 5, name: "5. Refleksi", icon: <MessageSquare size={18} /> },
+    { id: 4, name: "4. Pra Observasi", icon: <MessageSquare size={18} /> },
+    { id: 5, name: "5. Pelaksanaan", icon: <Play size={18} /> },
+    { id: 6, name: "6. Pasca Observasi", icon: <MessageSquare size={18} /> },
+    { id: 7, name: "7. Refleksi", icon: <Award size={18} /> },
   ];
 
   return (
@@ -1166,18 +1232,18 @@ export default function SupervisionDetail({ user }: { user: User }) {
             Progres Supervisi
           </h3>
           <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-            {Math.round(((supervision.status === 'SELESAI' ? 5 : activeStage - 1) / 5) * 100)}% Selesai
+            {Math.round(((supervision.status === 'SELESAI' ? 7 : activeStage - 1) / 7) * 100)}% Selesai
           </span>
         </div>
         <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
           <motion.div 
             initial={{ width: 0 }}
-            animate={{ width: `${((supervision.status === 'SELESAI' ? 5 : activeStage - 1) / 5) * 100}%` }}
+            animate={{ width: `${((supervision.status === 'SELESAI' ? 7 : activeStage - 1) / 7) * 100}%` }}
             className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]"
           />
         </div>
-        <div className="grid grid-cols-5 gap-2 mt-4">
-          {[1, 2, 3, 4, 5].map((s) => (
+        <div className="grid grid-cols-7 gap-2 mt-4">
+          {[1, 2, 3, 4, 5, 6, 7].map((s) => (
             <div key={s} className="flex flex-col items-center space-y-1">
               <div className={`w-full h-1 rounded-full ${activeStage >= s ? 'bg-emerald-500' : 'bg-zinc-100'}`} />
               <span className={`text-[8px] font-bold uppercase tracking-tighter ${activeStage === s ? 'text-emerald-600' : 'text-zinc-400'}`}>
@@ -1444,7 +1510,73 @@ export default function SupervisionDetail({ user }: { user: User }) {
             <div className="p-8">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-xl font-bold">Tahap 4: Supervisi Pelaksanaan</h3>
+                  <h3 className="text-xl font-bold">Tahap 4: Instrumen Percakapan Pra Observasi</h3>
+                  <p className="text-xs text-zinc-400 mt-1">Lakukan wawancara coaching sebelum observasi kelas.</p>
+                </div>
+                <div className="text-right flex flex-col items-end gap-2">
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => generateStagePDF(4)}
+                      className="flex items-center space-x-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                    >
+                      <Download size={12} />
+                      <span>PDF</span>
+                    </button>
+                    <button 
+                      onClick={() => generateStageWord(4)}
+                      className="flex items-center space-x-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                      <Download size={12} />
+                      <span>Word</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-6">
+                {PRE_OBSERVATION_INSTRUMENTS.map((item) => (
+                  <div key={item.id} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-400">
+                        {item.id.split('.')[1]}
+                      </div>
+                      <span className="font-bold text-zinc-800">{item.text}</span>
+                    </div>
+                    <textarea 
+                      value={stage4.items[item.id] as string || ""}
+                      onChange={(e) => setStage4({ ...stage4, items: { ...stage4.items, [item.id]: e.target.value } })}
+                      className="w-full p-4 bg-white border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px] text-sm"
+                      placeholder="Input catatan supervisor..."
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Catatan Tambahan Pra Observasi</label>
+                  <button 
+                    onClick={generateAINotes}
+                    disabled={isGenerating}
+                    className="flex items-center space-x-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-50"
+                  >
+                    <Sparkles size={12} />
+                    <span>{isGenerating ? 'Mengenerate...' : 'Generate dengan AI'}</span>
+                  </button>
+                </div>
+                <textarea 
+                  value={stage4.notes}
+                  onChange={(e) => setStage4({ ...stage4, notes: e.target.value })}
+                  className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[120px]"
+                  placeholder="Berikan kesimpulan atau catatan tambahan..."
+                />
+              </div>
+            </div>
+          )}
+
+          {activeStage === 5 && (
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-bold">Tahap 5: Supervisi Pelaksanaan</h3>
                   {supervision.stage4_date && (
                     <p className="text-xs text-zinc-400 mt-1 flex items-center">
                       <Calendar size={12} className="mr-1" />
@@ -1468,17 +1600,17 @@ export default function SupervisionDetail({ user }: { user: User }) {
                 </div>
                 <div className="text-right flex flex-col items-end gap-2">
                   <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Skor Tahap</p>
-                  <p className="text-2xl font-bold text-emerald-600">{calculateScore(4, stage4).toFixed(1)}%</p>
+                  <p className="text-2xl font-bold text-emerald-600">{calculateScore(5, stage5).toFixed(1)}%</p>
                   <div className="flex items-center gap-3">
                     <button 
-                      onClick={() => generateStagePDF(4)}
+                      onClick={() => generateStagePDF(5)}
                       className="flex items-center space-x-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                     >
                       <Download size={12} />
                       <span>PDF</span>
                     </button>
                     <button 
-                      onClick={() => generateStageWord(4)}
+                      onClick={() => generateStageWord(5)}
                       className="flex items-center space-x-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
                     >
                       <Download size={12} />
@@ -1500,8 +1632,8 @@ export default function SupervisionDetail({ user }: { user: User }) {
                       {[1, 2, 3, 4].map((val) => (
                         <button
                           key={val}
-                          onClick={() => setStage4({ ...stage4, items: { ...stage4.items, [item.id]: val } })}
-                          className={`py-3 rounded-xl border font-bold transition-all ${stage4.items[item.id] === val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
+                          onClick={() => setStage5({ ...stage5, items: { ...stage5.items, [item.id]: val } })}
+                          className={`py-3 rounded-xl border font-bold transition-all ${stage5.items[item.id] === val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
                         >
                           {val}
                         </button>
@@ -1523,8 +1655,8 @@ export default function SupervisionDetail({ user }: { user: User }) {
                   </button>
                 </div>
                 <textarea 
-                  value={stage4.notes}
-                  onChange={(e) => setStage4({ ...stage4, notes: e.target.value })}
+                  value={stage5.notes}
+                  onChange={(e) => setStage5({ ...stage5, notes: e.target.value })}
                   className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[120px]"
                   placeholder="Input catatan kejadian penting selama observasi..."
                 />
@@ -1532,11 +1664,78 @@ export default function SupervisionDetail({ user }: { user: User }) {
             </div>
           )}
 
-          {activeStage === 5 && (
+          {activeStage === 6 && (
             <div className="p-8">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-xl font-bold">Tahap 5: Refleksi & RTL</h3>
+                  <h3 className="text-xl font-bold">Tahap 6: Instrumen Supervisi Pasca Observasi</h3>
+                  <p className="text-xs text-zinc-400 mt-1">Lakukan wawancara coaching setelah observasi kelas.</p>
+                </div>
+                <div className="text-right flex flex-col items-end gap-2">
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => generateStagePDF(6)}
+                      className="flex items-center space-x-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                    >
+                      <Download size={12} />
+                      <span>PDF</span>
+                    </button>
+                    <button 
+                      onClick={() => generateStageWord(6)}
+                      className="flex items-center space-x-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                      <Download size={12} />
+                      <span>Word</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-6">
+                {POST_OBSERVATION_INSTRUMENTS.map((item) => (
+                  <div key={item.id} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-400">
+                        {item.id.split('.')[1]}
+                      </div>
+                      <span className="font-bold text-zinc-800">{item.text}</span>
+                    </div>
+                    <textarea 
+                      value={stage6.items[item.id] as string || ""}
+                      onChange={(e) => setStage6({ ...stage6, items: { ...stage6.items, [item.id]: e.target.value } })}
+                      className="w-full p-4 bg-white border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px] text-sm"
+                      placeholder="Input catatan supervisor..."
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-8 space-y-6">
+                <div>
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Catatan Observer</label>
+                  <textarea 
+                    value={stage6.notes}
+                    onChange={(e) => setStage6({ ...stage6, notes: e.target.value })}
+                    className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px]"
+                    placeholder="Input catatan observer..."
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Kesepakatan Tindak Lanjut</label>
+                  <textarea 
+                    value={stage6.items['kesepakatan'] as string || ""}
+                    onChange={(e) => setStage6({ ...stage6, items: { ...stage6.items, kesepakatan: e.target.value } })}
+                    className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px]"
+                    placeholder="Input kesepakatan tindak lanjut..."
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeStage === 7 && (
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-bold">Tahap 7: Refleksi & RTL</h3>
                   {supervision.stage5_date && (
                     <p className="text-xs text-zinc-400 mt-1 flex items-center">
                       <Calendar size={12} className="mr-1" />
@@ -1547,18 +1746,18 @@ export default function SupervisionDetail({ user }: { user: User }) {
                 <div className="text-right flex flex-col items-end gap-2">
                   <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Skor Akhir Estimasi</p>
                   <p className="text-2xl font-bold text-emerald-600">
-                    {((calculateScore(1, stage1) + calculateScore(2, stage2) + calculateScore(3, stage3) + calculateScore(4, stage4) + calculateScore(5, stage5)) / 5).toFixed(1)}%
+                    {((calculateScore(1, stage1) + calculateScore(2, stage2) + calculateScore(3, stage3) + calculateScore(5, stage5) + calculateScore(7, stage7)) / 5).toFixed(1)}%
                   </p>
                   <div className="flex items-center gap-3">
                     <button 
-                      onClick={() => generateStagePDF(5)}
+                      onClick={() => generateStagePDF(7)}
                       className="flex items-center space-x-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                     >
                       <Download size={12} />
                       <span>PDF</span>
                     </button>
                     <button 
-                      onClick={() => generateStageWord(5)}
+                      onClick={() => generateStageWord(7)}
                       className="flex items-center space-x-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
                     >
                       <Download size={12} />
@@ -1581,8 +1780,8 @@ export default function SupervisionDetail({ user }: { user: User }) {
                         {[1, 2, 3, 4].map((val) => (
                           <button
                             key={val}
-                            onClick={() => setStage5({ ...stage5, items: { ...stage5.items, [item.id]: val } })}
-                            className={`py-3 rounded-xl border font-bold transition-all ${stage5.items[item.id] === val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
+                            onClick={() => setStage7({ ...stage7, items: { ...stage7.items, [item.id]: val } })}
+                            className={`py-3 rounded-xl border font-bold transition-all ${stage7.items[item.id] === val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
                           >
                             {val}
                           </button>
@@ -1608,8 +1807,8 @@ export default function SupervisionDetail({ user }: { user: User }) {
                     </button>
                   </div>
                   <textarea 
-                    value={stage5.notes}
-                    onChange={(e) => setStage5({ ...stage5, notes: e.target.value })}
+                    value={stage7.notes}
+                    onChange={(e) => setStage7({ ...stage7, notes: e.target.value })}
                     className="w-full p-4 bg-white border border-emerald-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[120px]"
                     placeholder="Tuliskan langkah konkret perbaikan dan target waktu..."
                   />
@@ -1660,11 +1859,11 @@ export default function SupervisionDetail({ user }: { user: User }) {
         </div>
         <div className="flex items-center space-x-2 whitespace-nowrap">
           <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_5px_rgba(168,85,247,0.5)]"></div>
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">S4: {calculateScore(4, stage4).toFixed(0)}%</span>
+          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">S5: {calculateScore(5, stage5).toFixed(0)}%</span>
         </div>
         <div className="flex items-center space-x-2 whitespace-nowrap">
           <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.5)]"></div>
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">S5: {calculateScore(5, stage5).toFixed(0)}%</span>
+          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">S7: {calculateScore(7, stage7).toFixed(0)}%</span>
         </div>
         <div className="h-4 w-px bg-zinc-200 mx-2"></div>
         <div className="flex items-center space-x-2 whitespace-nowrap">
@@ -1717,14 +1916,28 @@ export default function SupervisionDetail({ user }: { user: User }) {
                   <div className="flex items-start space-x-4">
                     <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold flex-shrink-0">4</div>
                     <div>
-                      <h4 className="font-bold text-zinc-900">Tahap 4: Pelaksanaan Pembelajaran</h4>
-                      <p className="text-sm text-zinc-500 mt-1">Observasi langsung di kelas. Gunakan timer untuk mencatat durasi. Berikan skor 1-4 berdasarkan pengamatan nyata.</p>
+                      <h4 className="font-bold text-zinc-900">Tahap 4: Pra-Observasi</h4>
+                      <p className="text-sm text-zinc-500 mt-1">Lakukan wawancara coaching sebelum observasi kelas. Catat poin-poin penting kesepakatan.</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
                     <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold flex-shrink-0">5</div>
                     <div>
-                      <h4 className="font-bold text-zinc-900">Tahap 5: Refleksi & RTL</h4>
+                      <h4 className="font-bold text-zinc-900">Tahap 5: Pelaksanaan Pembelajaran</h4>
+                      <p className="text-sm text-zinc-500 mt-1">Observasi langsung di kelas. Gunakan timer untuk mencatat durasi. Berikan skor 1-4 berdasarkan pengamatan nyata.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold flex-shrink-0">6</div>
+                    <div>
+                      <h4 className="font-bold text-zinc-900">Tahap 6: Pasca-Observasi</h4>
+                      <p className="text-sm text-zinc-500 mt-1">Lakukan wawancara coaching setelah observasi kelas. Diskusikan hasil dan tindak lanjut.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold flex-shrink-0">7</div>
+                    <div>
+                      <h4 className="font-bold text-zinc-900">Tahap 7: Refleksi & RTL</h4>
                       <p className="text-sm text-zinc-500 mt-1">Diskusikan hasil supervisi dengan guru. Isi refleksi dan Rencana Tindak Lanjut (RTL). Gunakan AI untuk membantu merumuskan RTL.</p>
                     </div>
                   </div>

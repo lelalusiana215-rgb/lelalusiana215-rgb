@@ -62,9 +62,37 @@ export const STAGE4_INSTRUMENTS: InstrumentItem[] = [
 ];
 
 export const STAGE5_INSTRUMENTS: InstrumentItem[] = [
-  { id: "5.1", text: "Refleksi Guru terhadap Pembelajaran", category: "Refleksi" },
-  { id: "5.2", text: "Refleksi Kepala Sekolah terhadap Guru", category: "Refleksi" },
-  { id: "5.3", text: "Identifikasi Kekuatan Guru", category: "Refleksi" },
-  { id: "5.4", text: "Identifikasi Area Pengembangan", category: "Refleksi" },
-  { id: "5.5", text: "Rencana Tindak Lanjut (RTL)", category: "Refleksi" },
+  { id: "identifikasi_masalah", text: "Identifikasi Masalah", category: "Refleksi" },
+  { id: "rekomendasi", text: "Rekomendasi Perbaikan", category: "Refleksi" },
+  { id: "rtl", text: "Rencana Tindak Lanjut (RTL)", category: "Refleksi" },
+  { id: "ukuran_keberhasilan", text: "Ukuran Keberhasilan", category: "Refleksi" },
+  { id: "waktu", text: "Waktu Pelaksanaan", category: "Refleksi" },
+];
+
+export const PRE_OBSERVATION_INSTRUMENTS: InstrumentItem[] = [
+  { id: "PRE.1", text: "Apa tujuan utama pembelajaran yang ingin Anda capai pada pertemuan ini?", category: "Pra Observasi" },
+  { id: "PRE.2", text: "Bagaimana Anda merancang agar siswa benar-benar memahami konsep secara mendalam, bukan hanya menghafal?", category: "Pra Observasi" },
+  { id: "PRE.3", text: "Strategi atau model pembelajaran apa yang Anda pilih? Mengapa strategi itu relevan untuk pembelajaran mendalam?", category: "Pra Observasi" },
+  { id: "PRE.4", text: "Bagaimana cara Anda mengaktifkan siswa agar berpikir kritis, kreatif, dan kolaboratif selama pembelajaran?", category: "Pra Observasi" },
+  { id: "PRE.5", text: "Media atau sumber belajar apa yang akan digunakan, dan bagaimana mendukung pemahaman siswa?", category: "Pra Observasi" },
+  { id: "PRE.6", text: "Bagaimana Anda menilai keberhasilan siswa dalam pembelajaran ini? Apakah asesmen Anda berbasis autentik?", category: "Pra Observasi" },
+  { id: "PRE.7", text: "Dari pengalaman sebelumnya, bagian mana dari pembelajaran yang menurut Anda paling perlu mendapat perhatian saat diobservasi?", category: "Pra Observasi" },
+  { id: "PRE.8", text: "Dukungan apa yang Anda harapkan dari saya sebagai supervisor agar kegiatan ini berjalan lancar?", category: "Pra Observasi" },
+];
+
+export const POST_OBSERVATION_INSTRUMENTS: InstrumentItem[] = [
+  { id: "POST.1", text: "Bagaimana perasaan Bapak/Ibu setelah melaksanakan pembelajaran tadi?", category: "Pasca Observasi" },
+  { id: "POST.2", text: "Apa harapan utama Bapak/Ibu dari percakapan kita hari ini?", category: "Pasca Observasi" },
+  { id: "POST.3", text: "Menurut Bapak/Ibu, bagian mana dari pembelajaran tadi yang berjalan paling baik?", category: "Pasca Observasi" },
+  { id: "POST.4", text: "Apa yang membuat bagian itu berhasil?", category: "Pasca Observasi" },
+  { id: "POST.5", text: "Apakah ada momen ketika siswa terlihat benar-benar terlibat secara mendalam?", category: "Pasca Observasi" },
+  { id: "POST.6", text: "Bagian mana dari pembelajaran yang menurut Bapak/Ibu kurang sesuai harapan?", category: "Pasca Observasi" },
+  { id: "POST.7", text: "Faktor apa saja yang mempengaruhi hal tersebut?", category: "Pasca Observasi" },
+  { id: "POST.8", text: "Bagaimana penerapan pendekatan lintas disiplin dapat lebih diperkuat di kelas Bapak/Ibu?", category: "Pasca Observasi" },
+  { id: "POST.9", text: "Jika ada kesempatan mengajar ulang, apa yang akan Bapak/Ibu lakukan secara berbeda?", category: "Pasca Observasi" },
+  { id: "POST.10", text: "Strategi atau metode apa yang ingin Bapak/Ibu coba untuk meningkatkan pemahaman mendalam siswa?", category: "Pasca Observasi" },
+  { id: "POST.11", text: "Bagaimana asesmen autentik bisa lebih membantu Bapak/Ibu melihat perkembangan siswa?", category: "Pasca Observasi" },
+  { id: "POST.12", text: "Langkah konkret apa yang akan Bapak/Ibu lakukan dalam pembelajaran berikutnya?", category: "Pasca Observasi" },
+  { id: "POST.13", text: "Sumber daya atau dukungan apa yang Bapak/Ibu butuhkan untuk mencapainya?", category: "Pasca Observasi" },
+  { id: "POST.14", text: "Bagaimana saya (sebagai observer/coach) bisa membantu Bapak/Ibu mewujudkan rencana tersebut?", category: "Pasca Observasi" },
 ];

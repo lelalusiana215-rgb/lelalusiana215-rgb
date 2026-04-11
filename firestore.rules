@@ -2,132 +2,157 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: Firebase Auth UID
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (required, email format)
+    //   - role: string (required, enum: KEPALA_SEKOLAH, GURU, ADMIN)
+    //   - school_id: string (required)
+    //   - nip: string (optional)
+    //   - status: string (required, enum: PENDING, ACTIVE, REJECTED)
+    //
+    // Collection: schools
+    // Document ID: Auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - address: string (required)
+    //   - header_text: string (optional)
+    //   - logo_school: string (optional)
+    //   - logo_gov: string (optional)
+    //   - status: string (required, enum: PENDING, ACTIVE, REJECTED)
+    //
+    // Collection: supervisions
+    // Document ID: Auto-generated
+    // Fields:
+    //   - teacher_id: string (required)
+    //   - principal_id: string (required)
+    //   - school_id: string (required)
+    //   - status: string (required, enum: BELUM, PROSES, SELESAI)
+    //   ... other optional fields for stages and scores
+    //
+    // ===============================================================
+
+    // ===============================================================
     // Helper Functions
     // ===============================================================
+    
     function isAuthenticated() {
       return request.auth != null;
     }
-
+    
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
-
+    
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
-
-    function isAdmin() {
-      return isAuthenticated() && (
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'ADMIN') ||
-        (request.auth.token.email == "lelalusiana215@gmail.com" && request.auth.token.email_verified == true)
-      );
-    }
-
+    
     function isPrincipal() {
       return isAuthenticated() && getUserData().role == 'KEPALA_SEKOLAH';
     }
 
-    function isGuru() {
-      return isAuthenticated() && getUserData().role == 'GURU';
+    function isAdmin() {
+      return isAuthenticated() && 
+        (getUserData().role == 'ADMIN' || 
+         (request.auth.token.email == "lelalusiana215@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
     }
 
     // ===============================================================
-    // Data Validation
+    // Domain Validators
     // ===============================================================
+
     function isValidUser(data) {
-      return data.keys().hasAll(['email', 'name', 'role', 'school_id', 'nip', 'status']) &&
-             data.email is string &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
              data.role in ['KEPALA_SEKOLAH', 'GURU', 'ADMIN'] &&
              data.school_id is string &&
-             data.nip is string &&
              data.status in ['PENDING', 'ACTIVE', 'REJECTED'];
     }
 
     function isValidSchool(data) {
-      return data.keys().hasAll(['name', 'address', 'header_text', 'status']) &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
-             data.address is string &&
-             data.header_text is string &&
+      return data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.address is string && data.address.size() > 0 && data.address.size() < 500 &&
              data.status in ['PENDING', 'ACTIVE', 'REJECTED'];
     }
 
     function isValidSupervision(data) {
-      return data.keys().hasAll(['teacher_id', 'principal_id', 'date', 'status']) &&
-             data.teacher_id is string &&
+      return data.teacher_id is string &&
              data.principal_id is string &&
-             data.date is string &&
+             data.school_id is string &&
              data.status in ['BELUM', 'PROSES', 'SELESAI'];
     }
 
     // ===============================================================
-    // Match Rules
+    // Rules
     // ===============================================================
 
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && (
-        (isOwner(userId) && isValidUser(request.resource.data)) ||
-        (isPrincipal() && isValidUser(request.resource.data) && request.resource.data.role == 'GURU' && request.resource.data.school_id == getUserData().school_id) ||
+      allow read: if isAuthenticated() && (
+        isOwner(userId) || 
+        (isPrincipal() && getUserData().school_id == resource.data.school_id) ||
         isAdmin()
       );
+      
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && (
+        request.resource.data.role != 'ADMIN' || isAdmin()
+      );
+      
       allow update: if isAuthenticated() && (
-        (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.status == resource.data.status) || 
-        (isPrincipal() && resource.data.school_id == getUserData().school_id && isValidUser(request.resource.data)) ||
+        (isOwner(userId) && isValidUser(request.resource.data) && 
+         request.resource.data.role == resource.data.role && 
+         request.resource.data.school_id == resource.data.school_id) ||
         isAdmin()
       );
-      allow delete: if isAdmin() || (isPrincipal() && resource.data.school_id == getUserData().school_id);
     }
 
     match /schools/{schoolId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        getUserData().school_id == schoolId || isAdmin()
+      );
+      
       allow create: if isAuthenticated() && isValidSchool(request.resource.data);
-      allow update: if (isAdmin() || (isPrincipal() && getUserData().school_id == schoolId && getUserData().status == 'ACTIVE')) && isValidSchool(request.resource.data);
-      allow delete: if isAdmin();
+      
+      allow update: if isAuthenticated() && (
+        (isPrincipal() && getUserData().school_id == schoolId && isValidSchool(request.resource.data)) ||
+        isAdmin()
+      );
     }
 
     match /supervisions/{supervisionId} {
       allow read: if isAuthenticated() && (
-        (isPrincipal() && resource.data.school_id == getUserData().school_id && getUserData().status == 'ACTIVE') ||
-        (isGuru() && resource.data.teacher_id == request.auth.uid && getUserData().status == 'ACTIVE') ||
+        (isPrincipal() && getUserData().school_id == resource.data.school_id) ||
+        (isOwner(resource.data.teacher_id)) ||
         isAdmin()
       );
-      allow create: if isAuthenticated() && (isPrincipal() && getUserData().status == 'ACTIVE' || isAdmin());
+      
+      allow create: if isPrincipal() && isValidSupervision(request.resource.data) && 
+                    request.resource.data.principal_id == request.auth.uid &&
+                    request.resource.data.school_id == getUserData().school_id;
+      
       allow update: if isAuthenticated() && (
-        (request.auth.uid == resource.data.principal_id && getUserData().status == 'ACTIVE') ||
+        (isPrincipal() && resource.data.principal_id == request.auth.uid && isValidSupervision(request.resource.data)) ||
         isAdmin()
       );
-      allow delete: if isAdmin() || (isPrincipal() && resource.data.school_id == getUserData().school_id);
+      
+      allow delete: if isAdmin();
     }
 
-    match /schedules/{scheduleId} {
-      allow read: if isAuthenticated() && (
-        (isPrincipal() && resource.data.school_id == getUserData().school_id && getUserData().status == 'ACTIVE') ||
-        (isGuru() && resource.data.teacher_id == request.auth.uid && getUserData().status == 'ACTIVE') ||
-        isAdmin()
-      );
-      allow create: if isAuthenticated() && (isPrincipal() && getUserData().status == 'ACTIVE' || isAdmin());
-      allow update: if isAuthenticated() && (
-        (request.auth.uid == resource.data.principal_id && getUserData().status == 'ACTIVE') ||
-        isAdmin()
-      );
-      allow delete: if isAdmin() || (isPrincipal() && resource.data.school_id == getUserData().school_id);
-    }
-
-    match /test/connection {
-      allow read: if true;
-    }
-
-    match /teacher_credentials/{userId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == userId || 
-        (isPrincipal() && get(/databases/$(database)/documents/users/$(userId)).data.school_id == getUserData().school_id) || 
-        isAdmin()
-      );
-      allow write: if isAuthenticated() && (
-        (isPrincipal() && get(/databases/$(database)/documents/users/$(userId)).data.school_id == getUserData().school_id) || 
-        isAdmin()
-      );
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -54,7 +54,8 @@ export default function ProgramSupervisi({ user }: { user: User }) {
             stage3_date: supervision?.stage3_date || null,
             stage4_date: supervision?.stage4_date || null,
             supervision_date: supervision?.stage3_date || supervision?.date || null,
-            stage5_data: supervision?.stage5_data || null
+            stage5_data: supervision?.stage5_data || null,
+            stage7_data: supervision?.stage7_data || null
           };
         });
 

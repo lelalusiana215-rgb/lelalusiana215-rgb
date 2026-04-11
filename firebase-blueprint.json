@@ -1,72 +1,83 @@
 {
   "entities": {
-    "School": {
-      "title": "School",
-      "description": "Information about the school",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string", "description": "School name" },
-        "address": { "type": "string", "description": "School address" },
-        "header_text": { "type": "string", "description": "Header text for reports" },
-        "logo_school": { "type": "string", "description": "Base64 school logo" },
-        "logo_gov": { "type": "string", "description": "Base64 government logo" },
-        "status": { "type": "string", "enum": ["PENDING", "ACTIVE", "REJECTED"], "description": "Approval status" }
-      },
-      "required": ["name", "status"]
-    },
     "User": {
       "title": "User",
-      "description": "User profile information",
+      "description": "User profile information for principals and teachers.",
       "type": "object",
       "properties": {
-        "email": { "type": "string", "format": "email" },
-        "name": { "type": "string" },
-        "role": { "type": "string", "enum": ["KEPALA_SEKOLAH", "GURU", "ADMIN"] },
-        "nip": { "type": "string" },
-        "teaching_class": { "type": "string" },
-        "rank_grade": { "type": "string" },
-        "school_id": { "type": "string", "description": "ID of the school" },
-        "status": { "type": "string", "enum": ["PENDING", "ACTIVE", "REJECTED"], "description": "Approval status" }
+        "name": { "type": "string", "description": "Full name of the user." },
+        "email": { "type": "string", "format": "email", "description": "Email address." },
+        "role": { "type": "string", "enum": ["KEPALA_SEKOLAH", "GURU", "ADMIN"], "description": "User role." },
+        "school_id": { "type": "string", "description": "ID of the school the user belongs to." },
+        "nip": { "type": "string", "description": "Employee identification number (NIP)." },
+        "status": { "type": "string", "enum": ["PENDING", "ACTIVE", "REJECTED"], "description": "Account status." }
       },
-      "required": ["email", "name", "role", "school_id", "status"]
+      "required": ["name", "email", "role", "school_id", "status"]
+    },
+    "School": {
+      "title": "School",
+      "description": "School information.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the school." },
+        "address": { "type": "string", "description": "Physical address of the school." },
+        "header_text": { "type": "string", "description": "Header text for reports." },
+        "logo_school": { "type": "string", "description": "Base64 or URL of the school logo." },
+        "logo_gov": { "type": "string", "description": "Base64 or URL of the government logo." },
+        "status": { "type": "string", "enum": ["PENDING", "ACTIVE", "REJECTED"], "description": "School status." }
+      },
+      "required": ["name", "address", "status"]
     },
     "Supervision": {
       "title": "Supervision",
-      "description": "Academic supervision record",
+      "description": "Supervision record for a teacher.",
       "type": "object",
       "properties": {
-        "teacher_id": { "type": "string" },
-        "principal_id": { "type": "string" },
+        "teacher_id": { "type": "string", "description": "ID of the teacher being supervised." },
+        "principal_id": { "type": "string", "description": "ID of the principal conducting the supervision." },
+        "teacher_name": { "type": "string" },
+        "teacher_nip": { "type": "string" },
+        "principal_name": { "type": "string" },
+        "principal_nip": { "type": "string" },
         "date": { "type": "string", "format": "date-time" },
         "status": { "type": "string", "enum": ["BELUM", "PROSES", "SELESAI"] },
+        "stage1_data": { "type": "string", "description": "JSON string of stage 1 data." },
+        "stage2_data": { "type": "string" },
+        "stage3_data": { "type": "string" },
+        "stage4_data": { "type": "string" },
+        "stage5_data": { "type": "string" },
+        "stage6_data": { "type": "string" },
+        "stage7_data": { "type": "string" },
         "stage1_date": { "type": "string" },
         "stage2_date": { "type": "string" },
         "stage3_date": { "type": "string" },
         "stage4_date": { "type": "string" },
         "stage5_date": { "type": "string" },
-        "stage1_data": { "type": "string", "description": "JSON string of stage 1 data" },
-        "stage2_data": { "type": "string", "description": "JSON string of stage 2 data" },
-        "stage3_data": { "type": "string", "description": "JSON string of stage 3 data" },
-        "stage4_data": { "type": "string", "description": "JSON string of stage 4 data" },
-        "stage5_data": { "type": "string", "description": "JSON string of stage 5 data" },
+        "stage6_date": { "type": "string" },
+        "stage7_date": { "type": "string" },
         "final_score": { "type": "number" },
-        "recommendations": { "type": "string" }
+        "recommendations": { "type": "string" },
+        "school_name": { "type": "string" },
+        "school_id": { "type": "string" },
+        "header_text": { "type": "string" },
+        "logo_school": { "type": "string" },
+        "logo_gov": { "type": "string" }
       },
-      "required": ["teacher_id", "principal_id", "date", "status"]
+      "required": ["teacher_id", "principal_id", "date", "status", "school_id"]
     }
   },
   "firestore": {
-    "/schools/{schoolId}": {
-      "schema": "School",
-      "description": "School details"
-    },
     "/users/{userId}": {
       "schema": "User",
-      "description": "User profiles"
+      "description": "User profiles."
+    },
+    "/schools/{schoolId}": {
+      "schema": "School",
+      "description": "School records."
     },
     "/supervisions/{supervisionId}": {
       "schema": "Supervision",
-      "description": "Supervision records"
+      "description": "Supervision records."
     }
   }
 }
