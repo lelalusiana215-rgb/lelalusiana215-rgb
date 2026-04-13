@@ -99,6 +99,10 @@ service cloud.firestore {
     // Rules
     // ===============================================================
 
+    match /test/connection {
+      allow read: if true;
+    }
+
     match /users/{userId} {
       allow read: if isAuthenticated() && (
         isOwner(userId) || 
@@ -106,14 +110,21 @@ service cloud.firestore {
         isAdmin()
       );
       
-      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && (
-        request.resource.data.role != 'ADMIN' || isAdmin()
-      );
+      allow create: if isAuthenticated() && (
+        (isOwner(userId) && (request.resource.data.role != 'ADMIN' || isAdmin())) ||
+        (isPrincipal() && request.resource.data.role == 'GURU' && request.resource.data.school_id == getUserData().school_id)
+      ) && isValidUser(request.resource.data);
       
       allow update: if isAuthenticated() && (
         (isOwner(userId) && isValidUser(request.resource.data) && 
          request.resource.data.role == resource.data.role && 
          request.resource.data.school_id == resource.data.school_id) ||
+        (isPrincipal() && resource.data.role == 'GURU' && resource.data.school_id == getUserData().school_id && isValidUser(request.resource.data)) ||
+        isAdmin()
+      );
+
+      allow delete: if isAuthenticated() && (
+        (isPrincipal() && resource.data.role == 'GURU' && resource.data.school_id == getUserData().school_id) ||
         isAdmin()
       );
     }
@@ -147,7 +158,14 @@ service cloud.firestore {
         isAdmin()
       );
       
-      allow delete: if isAdmin();
+      allow delete: if isAuthenticated() && (
+        (isPrincipal() && resource.data.school_id == getUserData().school_id) ||
+        isAdmin()
+      );
+    }
+
+    match /teacher_credentials/{teacherId} {
+      allow read, write: if isAdmin() || (isPrincipal() && getUserData().school_id == get(/databases/$(database)/documents/users/$(teacherId)).data.school_id);
     }
 
     // Default deny

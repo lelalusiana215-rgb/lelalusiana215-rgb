@@ -9,6 +9,9 @@ export interface User {
   school_id: string;
   nip?: string;
   status: Status;
+  teaching_class?: string;
+  rank_grade?: string;
+  subject?: string;
 }
 
 export interface School {

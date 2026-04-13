@@ -1,13 +1,14 @@
 import express from "express";
 import fs from "fs";
 import path from "path";
+import admin from "firebase-admin";
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Initialize Firebase Config
-let firebaseConfig;
+let firebaseConfig: any;
 try {
   const configPath = path.join(process.cwd(), "firebase-applet-config.json");
   firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
@@ -20,11 +21,66 @@ try {
   };
 }
 
+// Initialize Firebase Admin
+if (admin.apps.length === 0) {
+  try {
+    const options: any = {};
+    if (firebaseConfig.projectId) {
+      options.projectId = firebaseConfig.projectId;
+      console.log("Initializing Firebase Admin with project ID:", options.projectId);
+    }
+    
+    admin.initializeApp(options);
+    console.log("Firebase Admin initialized successfully");
+  } catch (e) {
+    console.error("Firebase Admin initialization failed:", e);
+  }
+}
+
 // API Routes
-app.get("/api/test-firebase", (req, res) => {
+app.get("/api/test-firebase", async (req, res) => {
+  let identityToolkitStatus = "unknown";
+  let adminAuthStatus = "unknown";
+
+  if (firebaseConfig.apiKey) {
+    try {
+      const testRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "test@test.com", password: "password", returnSecureToken: false })
+      });
+      const data = await testRes.json();
+      if (data.error && data.error.message === "EMAIL_EXISTS") {
+        identityToolkitStatus = "active";
+      } else if (data.error && (data.error.message.includes("SERVICE_DISABLED") || data.error.code === 403)) {
+        identityToolkitStatus = "disabled";
+      } else {
+        identityToolkitStatus = "active"; // Most other errors mean the API is reachable
+      }
+    } catch (e) {
+      identityToolkitStatus = "error";
+    }
+  }
+
+  if (admin.apps.length > 0) {
+    try {
+      // Try a simple auth operation to check if Admin SDK is working for Auth
+      await admin.auth().getUserByEmail("non-existent@test.com").catch((e) => {
+        if (e.code === 'auth/user-not-found') adminAuthStatus = "working";
+        else throw e;
+      });
+    } catch (e: any) {
+      adminAuthStatus = `error: ${e.code} (${e.message?.substring(0, 50)}...)`;
+    }
+  }
+
   res.json({
     firebaseConfigLoaded: !!firebaseConfig,
-    projectId: firebaseConfig?.projectId
+    projectId: firebaseConfig?.projectId,
+    adminInitialized: admin.apps.length > 0,
+    adminProjectId: admin.apps.length > 0 ? admin.app().options.projectId : "not initialized",
+    identityToolkitStatus,
+    adminAuthStatus
   });
 });
 
@@ -42,8 +98,13 @@ app.post("/api/teachers", async (req, res) => {
   }
 
   try {
-    // 1. Create Auth User using REST API
+    let uid;
     const apiKey = firebaseConfig.apiKey;
+    if (!apiKey) throw new Error("Firebase API Key not found");
+
+    console.log("Attempting to create/update teacher via REST API:", email);
+    
+    // 1. Try to create user via REST API (always uses the correct project via API Key)
     const signUpRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -55,49 +116,84 @@ app.post("/api/teachers", async (req, res) => {
     });
     
     const signUpData = await signUpRes.json();
-    let uid;
-    let idToken;
-
+    
     if (signUpData.error) {
       if (signUpData.error.message === 'EMAIL_EXISTS') {
-        // If email exists, try to sign in to get the UID (useful if teacher was deleted from Firestore but not Auth)
-        const signInRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            password: password || "guru123",
-            returnSecureToken: true
-          })
-        });
-        const signInData = await signInRes.json();
-        if (signInData.error) {
-          throw new Error("Email sudah terdaftar. Jika ini guru yang pernah dihapus, pastikan kata sandi yang dimasukkan sama dengan sebelumnya.");
+        console.log("Email exists, attempting to get UID...");
+        
+        // Try to get UID via Admin SDK first (if it works)
+        if (admin.apps.length > 0) {
+          try {
+            const userRecord = await admin.auth().getUserByEmail(email);
+            uid = userRecord.uid;
+            console.log("Found existing UID via Admin SDK:", uid);
+            
+            // Update password if needed
+            await admin.auth().updateUser(uid, { password, displayName: name });
+          } catch (adminErr: any) {
+            console.warn("Admin SDK failed to get/update user, falling back to REST sign-in:", adminErr.code);
+            // Fallback to sign-in to get UID
+            const signInRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password: password || "guru123", returnSecureToken: true })
+            });
+            const signInData = await signInRes.json();
+            if (signInData.error) {
+              throw new Error("Email sudah terdaftar dengan kata sandi berbeda. Silakan gunakan NIP yang benar sebagai kata sandi.");
+            }
+            uid = signInData.localId;
+          }
+        } else {
+          // Fallback to sign-in to get UID
+          const signInRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password: password || "guru123", returnSecureToken: true })
+          });
+          const signInData = await signInRes.json();
+          if (signInData.error) {
+            throw new Error("Email sudah terdaftar. Gunakan NIP sebagai kata sandi untuk masuk.");
+          }
+          uid = signInData.localId;
         }
-        uid = signInData.localId;
-        idToken = signInData.idToken;
       } else {
         throw new Error(signUpData.error.message);
       }
     } else {
       uid = signUpData.localId;
-      idToken = signUpData.idToken;
+      console.log("New user created via REST API:", uid);
     }
-
-    // Update displayName
-    await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        idToken,
-        displayName: name,
-        returnSecureToken: false
-      })
-    });
 
     res.json({ success: true, id: uid, email, password });
   } catch (e: any) {
-    console.error("Error creating teacher:", e);
+    console.error("Final error in /api/teachers:", e);
+    let errorMessage = e.message || String(e);
+    
+    if (errorMessage.includes("identitytoolkit.googleapis.com") || errorMessage.includes("SERVICE_DISABLED")) {
+      errorMessage = "Sistem Autentikasi sedang dalam proses aktivasi oleh Google. Mohon tunggu 5-10 menit lalu coba lagi. Jika masalah berlanjut, hubungi pengembang.";
+    }
+    
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+app.delete("/api/teachers/:id", async (req, res) => {
+  const { id } = req.params;
+  
+  if (admin.apps.length === 0) {
+    return res.status(500).json({ error: "Firebase Admin not initialized" });
+  }
+
+  try {
+    await admin.auth().deleteUser(id);
+    res.json({ success: true, message: "User deleted from Auth" });
+  } catch (e: any) {
+    console.error("Error deleting user from Auth:", e);
+    // If user not found in Auth, it's fine, they might have been deleted already
+    if (e.code === 'auth/user-not-found') {
+      return res.json({ success: true, message: "User already deleted or not found in Auth" });
+    }
     res.status(500).json({ error: e.message || String(e) });
   }
 });

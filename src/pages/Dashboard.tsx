@@ -127,16 +127,16 @@ export default function Dashboard({ user }: { user: User }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Chart Section */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-black/5 shadow-sm">
+        <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-black/5 shadow-sm min-h-[400px] flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-bold flex items-center">
               <TrendingUp className="mr-2 text-emerald-500" size={20} />
               Statistik Progres Supervisi
             </h3>
           </div>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
+          <div className="flex-1 w-full min-h-[300px]">
+            <ResponsiveContainer width="100%" height="100%" minHeight={300}>
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} />

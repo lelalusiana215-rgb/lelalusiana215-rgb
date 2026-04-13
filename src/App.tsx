@@ -167,6 +167,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
+  const [offlineError, setOfflineError] = useState<string>("");
 
   useEffect(() => {
     // Test connection to Firestore
@@ -175,9 +176,14 @@ export default function App() {
         await getDocFromServer(doc(db, 'test', 'connection'));
         setIsOffline(false);
       } catch (error: any) {
+        console.error("Connection test error:", error);
+        setOfflineError(error.message || String(error));
+        // Permission denied means we ARE connected, just not authorized.
+        // Only treat actual connection failures as offline.
         if (error.message?.includes('offline') || error.code === 'unavailable' || error.code === 'failed-precondition') {
           setIsOffline(true);
-          console.error("Please check your Firebase configuration.");
+        } else {
+          setIsOffline(false);
         }
       }
     };
@@ -266,6 +272,7 @@ export default function App() {
               <p className="text-zinc-400 uppercase font-sans font-bold">Detail Teknis:</p>
               <p className="text-zinc-600">Domain: {window.location.hostname}</p>
               <p className="text-zinc-600">Project: gen-lang-client-0369480188</p>
+              <p className="text-red-500 break-all">Error: {offlineError}</p>
             </div>
             <button 
               onClick={() => window.location.reload()}

@@ -17,6 +17,7 @@ export default function TeacherManagement({ user }: { user: User }) {
     nip: "",
     teaching_class: "",
     rank_grade: "",
+    subject: "",
     schedule: {
       stage1: "",
       stage2: "",
@@ -65,7 +66,9 @@ export default function TeacherManagement({ user }: { user: User }) {
             name: formData.name,
             nip: formData.nip,
             teaching_class: formData.teaching_class,
-            rank_grade: formData.rank_grade
+            rank_grade: formData.rank_grade,
+            subject: formData.subject,
+            email: formData.email // Keep email as plain data if provided
           });
           setMessage({ type: "success", text: "Data guru berhasil diperbarui." });
         } catch (err) {
@@ -75,80 +78,50 @@ export default function TeacherManagement({ user }: { user: User }) {
           return;
         }
       } else {
-        // 1. Create Auth User via Backend
-        const res = await fetch("/api/teachers", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            ...formData, 
-            school_id: user.school_id,
-            principal_id: user.id 
-          }),
-        });
-        
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Server tidak merespons dengan format yang benar. Pastikan server backend berjalan.");
-        }
-        
-        const data = await res.json();
-        
-        if (res.ok) {
-          // 2. Create User Profile in Firestore directly
-          try {
-            await setDoc(doc(db, "users", data.id), {
-              email: data.email || "",
-              name: formData.name || "",
-              role: "GURU",
-              school_id: user.school_id || "",
-              principal_id: user.id || "",
-              nip: formData.nip || "",
-              teaching_class: formData.teaching_class || "",
-              rank_grade: formData.rank_grade || "",
-              status: "ACTIVE"
-            });
+        // Directly create Teacher in Firestore without Auth account
+        try {
+          const teacherData = {
+            email: formData.email || `${formData.nip || Math.random().toString(36).substring(7)}@sekolah.local`,
+            name: formData.name || "",
+            role: "GURU",
+            school_id: user.school_id || "",
+            principal_id: user.id || "",
+            nip: formData.nip || "",
+            teaching_class: formData.teaching_class || "",
+            rank_grade: formData.rank_grade || "",
+            subject: formData.subject || "",
+            status: "ACTIVE",
+            created_at: serverTimestamp()
+          };
 
-            // Save credentials for principal to view later
-            if (data.password) {
-              await setDoc(doc(db, "teacher_credentials", data.id), {
-                password: data.password,
-                updated_at: new Date().toISOString()
-              });
-            }
-          } catch (err) {
-            console.error("Error creating user document:", err);
-            setError("Gagal menyimpan data guru.");
-            setSubmitting(false);
-            return;
-          }
+          const docRef = await addDoc(collection(db, "users"), teacherData);
+          const teacherId = docRef.id;
 
-          // 3. Create initial supervision if schedule provided
+          // Create initial supervision if schedule provided
           if (formData.schedule.stage1) {
-            try {
-              await addDoc(collection(db, "supervisions"), {
-                teacher_id: data.id,
-                teacher_name: formData.name,
-                teacher_nip: formData.nip,
-                principal_id: user.id,
-                principal_name: user.name,
-                principal_nip: user.nip || "-",
-                school_id: user.school_id,
-                date: formData.schedule.stage1,
-                stage1_date: formData.schedule.stage1,
-                stage2_date: formData.schedule.stage2,
-                stage3_date: formData.schedule.stage3,
-                stage4_date: formData.schedule.stage4,
-                status: "BELUM",
-                final_score: 0,
-                created_at: serverTimestamp()
-              });
-            } catch (err) {
-              console.error("Error creating supervision:", err);
-            }
+            await addDoc(collection(db, "supervisions"), {
+              teacher_id: teacherId,
+              teacher_name: formData.name,
+              teacher_nip: formData.nip,
+              principal_id: user.id,
+              principal_name: user.name,
+              principal_nip: user.nip || "-",
+              school_id: user.school_id,
+              date: formData.schedule.stage1,
+              stage1_date: formData.schedule.stage1,
+              stage2_date: formData.schedule.stage2,
+              stage3_date: formData.schedule.stage3,
+              stage4_date: formData.schedule.stage4,
+              status: "BELUM",
+              final_score: 0,
+              created_at: serverTimestamp()
+            });
           }
-          setMessage({ type: "success", text: "Guru berhasil ditambahkan." });
-        } else {
-          setError(data.error);
+          setMessage({ type: "success", text: "Guru berhasil ditambahkan ke database." });
+        } catch (err) {
+          console.error("Error creating teacher document:", err);
+          setError("Gagal menyimpan data guru.");
+          setSubmitting(false);
           return;
         }
       }
@@ -156,7 +129,7 @@ export default function TeacherManagement({ user }: { user: User }) {
       setIsModalOpen(false);
       setEditingTeacher(null);
       setFormData({ 
-        name: "", email: "", password: "", nip: "", teaching_class: "", rank_grade: "",
+        name: "", email: "", password: "", nip: "", teaching_class: "", rank_grade: "", subject: "",
         schedule: { stage1: "", stage2: "", stage3: "", stage4: "" }
       });
     } catch (err: any) {
@@ -177,6 +150,7 @@ export default function TeacherManagement({ user }: { user: User }) {
       nip: teacher.nip || "",
       teaching_class: teacher.teaching_class || "",
       rank_grade: teacher.rank_grade || "",
+      subject: teacher.subject || "",
       schedule: {
         stage1: "",
         stage2: "",
@@ -224,8 +198,18 @@ export default function TeacherManagement({ user }: { user: User }) {
         }
       }
 
-      // 3. Delete user profile
+      // 3. Delete user profile from Firestore
       await deleteDoc(doc(db, "users", teacherToDelete));
+
+      // 4. Delete user from Firebase Auth via Backend API
+      try {
+        await fetch(`/api/teachers/${teacherToDelete}`, {
+          method: "DELETE",
+        });
+      } catch (e) {
+        console.error("Error deleting teacher from Auth:", e);
+        // We continue even if Auth deletion fails, as the profile is already gone
+      }
       
       setMessage({ type: "success", text: "Guru dan data supervisi terkait berhasil dihapus." });
     } catch (err) {
@@ -313,6 +297,10 @@ export default function TeacherManagement({ user }: { user: User }) {
                 NIP: {teacher.nip || "-"}
               </div>
               <div className="flex items-center text-sm text-zinc-500">
+                <div className="w-4 mr-3 flex justify-center text-zinc-300 font-bold text-[10px]">MP</div>
+                Mapel: {teacher.subject || "-"}
+              </div>
+              <div className="flex items-center text-sm text-zinc-500">
                 <div className="w-4 mr-3 flex justify-center text-zinc-300 font-bold text-[10px]">KL</div>
                 Kelas: {teacher.teaching_class || "-"}
               </div>
@@ -323,14 +311,6 @@ export default function TeacherManagement({ user }: { user: User }) {
             </div>
 
             <div className="flex items-center space-x-2 mt-8 pt-6 border-t border-zinc-50">
-              <button 
-                onClick={() => handleViewPassword(teacher)}
-                className="flex-1 flex items-center justify-center space-x-2 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-xs font-bold transition-all"
-                title="Lihat Kata Sandi"
-              >
-                <Key size={14} />
-                <span>Sandi</span>
-              </button>
               <button 
                 onClick={() => handleEdit(teacher)}
                 className="flex-1 flex items-center justify-center space-x-2 py-2 bg-zinc-50 hover:bg-zinc-100 text-zinc-600 rounded-xl text-xs font-bold transition-all"
@@ -496,6 +476,16 @@ export default function TeacherManagement({ user }: { user: User }) {
                       />
                     </div>
                     <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Email (Opsional)</label>
+                      <input 
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                        placeholder="email@guru.id"
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">NIP</label>
                       <input 
                         type="text" required
@@ -503,6 +493,16 @@ export default function TeacherManagement({ user }: { user: User }) {
                         onChange={(e) => setFormData({ ...formData, nip: e.target.value })}
                         className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                         placeholder="NIP Guru..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Mata Pelajaran</label>
+                      <input 
+                        type="text" required
+                        value={formData.subject}
+                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                        placeholder="Contoh: Tematik / Matematika"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">

@@ -12,35 +12,42 @@ interface LampiranProps {
 export default function Lampiran2({ user, school, printDate, academicYear, teachers }: LampiranProps) {
   return (
     <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
-      <h1 className="text-center font-bold text-lg mb-2">LAMPIRAN 2</h1>
-      <h2 className="text-center font-bold text-lg mb-8">REKAPITULASI RENCANA TINDAK LANJUT HASIL SUPERVISI AKADEMIK<br/>TAHUN PELAJARAN {academicYear}</h2>
+      <h1 className="text-center font-bold text-lg mb-2 uppercase">Lampiran 2</h1>
+      <h2 className="text-center font-bold text-lg mb-8 uppercase">REKAPITULASI RENCANA TINDAK LANJUT HASIL SUPERVISI AKADEMIK<br/>TAHUN PELAJARAN {academicYear}</h2>
       
       <table className="w-full border-collapse border border-black text-[10px]">
         <thead>
-          <tr className="bg-green-100">
-            <th className="border border-black p-1 text-center w-8">No</th>
-            <th className="border border-black p-1 text-center w-32">Nama Guru</th>
-            <th className="border border-black p-1 text-center">Identifikasi Masalah</th>
-            <th className="border border-black p-1 text-center">Rekomendasi Perbaikan</th>
-            <th className="border border-black p-1 text-center">Rencana Kegiatan (RTL)</th>
-            <th className="border border-black p-1 text-center">Ukuran Keberhasilan</th>
-            <th className="border border-black p-1 text-center w-20">Waktu</th>
+          <tr className="bg-green-50">
+            <th className="border border-black p-2 text-center w-8">No</th>
+            <th className="border border-black p-2 text-center w-32">Nama Guru</th>
+            <th className="border border-black p-2 text-center">Identifikasi Masalah</th>
+            <th className="border border-black p-2 text-center">Rekomendasi Perbaikan</th>
+            <th className="border border-black p-2 text-center">Rencana Kegiatan (RTL)</th>
+            <th className="border border-black p-2 text-center">Ukuran Keberhasilan</th>
+            <th className="border border-black p-2 text-center w-20">Waktu</th>
           </tr>
         </thead>
         <tbody>
           {teachers.length > 0 ? teachers.map((teacher, index) => {
-            const stage7Data = typeof teacher.stage7_data === 'string' ? JSON.parse(teacher.stage7_data) : teacher.stage7_data;
-            const notes = stage7Data?.notes || "-";
+            let stage7Data = teacher.stage7_data;
+            if (typeof stage7Data === 'string' && stage7Data.trim() !== '') {
+              try {
+                stage7Data = JSON.parse(stage7Data);
+              } catch (e) {
+                console.error("Error parsing stage7_data:", e);
+                stage7Data = null;
+              }
+            }
             
             return (
               <tr key={teacher.id}>
-                <td className="border border-black p-1 text-center">{index + 1}</td>
-                <td className="border border-black p-1 font-bold">{teacher.name}</td>
-                <td className="border border-black p-1 text-center">{stage7Data?.items?.['identifikasi_masalah'] || "-"}</td>
-                <td className="border border-black p-1 text-center">{stage7Data?.items?.['rekomendasi'] || "-"}</td>
-                <td className="border border-black p-1">{stage7Data?.items?.['rtl'] || notes}</td>
-                <td className="border border-black p-1 text-center">{stage7Data?.items?.['ukuran_keberhasilan'] || "-"}</td>
-                <td className="border border-black p-1 text-center">{stage7Data?.items?.['waktu'] || "-"}</td>
+                <td className="border border-black p-2 text-center">{index + 1}</td>
+                <td className="border border-black p-2 font-bold">{teacher.name}</td>
+                <td className="border border-black p-2">{stage7Data?.items?.['identifikasi_masalah'] || "-"}</td>
+                <td className="border border-black p-2">{stage7Data?.items?.['rekomendasi'] || "-"}</td>
+                <td className="border border-black p-2">{stage7Data?.items?.['rtl'] || stage7Data?.notes || "-"}</td>
+                <td className="border border-black p-2">{stage7Data?.items?.['ukuran_keberhasilan'] || "-"}</td>
+                <td className="border border-black p-2 text-center">{stage7Data?.items?.['waktu'] || "-"}</td>
               </tr>
             );
           }) : (
