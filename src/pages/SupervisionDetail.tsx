@@ -92,8 +92,9 @@ export default function SupervisionDetail({ user }: { user: User }) {
     
     if (stage === 1) {
       if (STAGE1_INSTRUMENTS.length === 0) return 0;
-      const checked = items.filter(v => v === true).length;
-      const score = (checked / STAGE1_INSTRUMENTS.length) * 100;
+      const sum = (items as any[]).reduce((acc: number, v: any) => acc + (Number(v) || 0), 0);
+      const max = STAGE1_INSTRUMENTS.length * 2;
+      const score = (sum / max) * 100;
       return isNaN(score) ? 0 : score;
     } else {
       let instruments: any[] = [];
@@ -369,7 +370,9 @@ export default function SupervisionDetail({ user }: { user: User }) {
       const val = stageData.items[inst.id];
       let result = "";
       if (stageNum === 1) {
-        result = val ? "Lengkap" : "Tidak Lengkap";
+        if (val === 2) result = "Ada dan Sesuai";
+        else if (val === 1) result = "Ada Tidak Sesuai";
+        else result = "Tidak Ada";
       } else if (isInterview) {
         result = val ? val.toString() : "-";
       } else {
@@ -800,7 +803,9 @@ export default function SupervisionDetail({ user }: { user: User }) {
                 const val = stageData.items[inst.id];
                 let result = "";
                 if (stageNum === 1) {
-                  result = val ? "Lengkap" : "Tidak Lengkap";
+                  if (val === 2) result = "Ada dan Sesuai";
+                  else if (val === 1) result = "Ada Tidak Sesuai";
+                  else result = "Tidak Ada";
                 } else if (isInterview) {
                   result = val ? val.toString() : "-";
                 } else {
@@ -1310,22 +1315,31 @@ export default function SupervisionDetail({ user }: { user: User }) {
                   </div>
                 </div>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {STAGE1_INSTRUMENTS.map((item) => (
-                  <label key={item.id} className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl border border-zinc-100 cursor-pointer hover:border-emerald-200 transition-all group">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-400 group-hover:text-emerald-500 transition-colors">
+                  <div key={item.id} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-400">
                         {item.id}
                       </div>
-                      <span className="font-medium text-zinc-700">{item.text}</span>
+                      <span className="font-bold text-zinc-800">{item.text}</span>
                     </div>
-                    <input 
-                      type="checkbox" 
-                      checked={!!stage1.items[item.id]}
-                      onChange={(e) => setStage1({ ...stage1, items: { ...stage1.items, [item.id]: e.target.checked } })}
-                      className="w-6 h-6 rounded-lg border-zinc-300 text-emerald-600 focus:ring-emerald-500"
-                    />
-                  </label>
+                    <div className="grid grid-cols-3 gap-4">
+                      {[
+                        { val: 0, label: "Tidak Ada" },
+                        { val: 1, label: "Ada Tidak Sesuai" },
+                        { val: 2, label: "Ada Sesuai" }
+                      ].map((opt) => (
+                        <button
+                          key={opt.val}
+                          onClick={() => setStage1({ ...stage1, items: { ...stage1.items, [item.id]: opt.val } })}
+                          className={`py-3 rounded-xl border font-bold text-[10px] uppercase tracking-tighter transition-all ${stage1.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
               <div className="mt-8">

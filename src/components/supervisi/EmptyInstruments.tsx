@@ -3,9 +3,9 @@ import React from 'react';
 export default function EmptyInstruments() {
   return (
     <>
-      {/* Lampiran 5: INSTRUMEN SUPERVISI RPP */}
+      {/* Lampiran 2: INSTRUMEN SUPERVISI RPP */}
       <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
-        <h1 className="text-center font-bold text-lg mb-2">Lampiran 5</h1>
+        <h1 className="text-center font-bold text-lg mb-2">Lampiran 2</h1>
         <h2 className="text-center font-bold text-lg mb-8 uppercase">INSTRUMEN SUPERVISI RPP<br/>(PEMBELAJARAN MENDALAM)</h2>
         
         <div className="mb-6 space-y-1">
@@ -79,9 +79,9 @@ export default function EmptyInstruments() {
         </div>
       </div>
 
-      {/* Lampiran 6: INSTRUMEN PERCAKAPAN PRA OBSERVASI */}
+      {/* Lampiran 3: INSTRUMEN PERCAKAPAN PRA OBSERVASI */}
       <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
-        <h1 className="text-center font-bold text-lg mb-2">Lampiran 6</h1>
+        <h1 className="text-center font-bold text-lg mb-2">Lampiran 3</h1>
         <h2 className="text-center font-bold text-lg mb-8 uppercase">INSTRUMEN PERCAKAPAN PRA OBSERVASI</h2>
         
         <div className="mb-6 space-y-1">
@@ -143,9 +143,9 @@ export default function EmptyInstruments() {
         </div>
       </div>
 
-      {/* Lampiran 7: INSTRUMEN PELAKSANAAN OBSERVASI */}
+      {/* Lampiran 4: INSTRUMEN PELAKSANAAN OBSERVASI */}
       <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
-        <h1 className="text-center font-bold text-lg mb-2">Lampiran 7</h1>
+        <h1 className="text-center font-bold text-lg mb-2">Lampiran 4</h1>
         <h2 className="text-center font-bold text-lg mb-8 uppercase">INSTRUMEN PELAKSANAAN OBSERVASI<br/>(PENDEKATAN PEMBELAJARAN MENDALAM)</h2>
         
         <div className="mb-6 space-y-1">
@@ -233,9 +233,9 @@ export default function EmptyInstruments() {
         </div>
       </div>
 
-      {/* Lampiran 8: INSTRUMEN SUPERVISI PASCA OBSERVASI */}
+      {/* Lampiran 5: INSTRUMEN SUPERVISI PASCA OBSERVASI */}
       <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
-        <h1 className="text-center font-bold text-lg mb-2">Lampiran 8</h1>
+        <h1 className="text-center font-bold text-lg mb-2">Lampiran 5</h1>
         <h2 className="text-center font-bold text-lg mb-8 uppercase">INSTRUMEN SUPERVISI PASCA OBSERVASI</h2>
         
         <div className="mb-6 space-y-1">
@@ -315,9 +315,9 @@ export default function EmptyInstruments() {
         </div>
       </div>
 
-      {/* Lampiran 9: INSTRUMEN MONITORING ADMINISTRASI PEMBELAJARAN */}
+      {/* Lampiran 6: INSTRUMEN MONITORING ADMINISTRASI PEMBELAJARAN */}
       <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
-        <h1 className="text-center font-bold text-lg mb-2">Lampiran 9</h1>
+        <h1 className="text-center font-bold text-lg mb-2">Lampiran 6</h1>
         <h2 className="text-center font-bold text-lg mb-8 uppercase">INSTRUMEN MONITORING ADMINISTRASI PEMBELAJARAN</h2>
         
         <div className="mb-6 space-y-1">

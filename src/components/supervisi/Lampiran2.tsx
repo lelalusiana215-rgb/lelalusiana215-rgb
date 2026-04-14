@@ -12,7 +12,7 @@ interface LampiranProps {
 export default function Lampiran2({ user, school, printDate, academicYear, teachers }: LampiranProps) {
   return (
     <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
-      <h1 className="text-center font-bold text-lg mb-2 uppercase">Lampiran 2</h1>
+      <h1 className="text-center font-bold text-lg mb-2 uppercase">Lampiran 1</h1>
       <h2 className="text-center font-bold text-lg mb-8 uppercase">REKAPITULASI RENCANA TINDAK LANJUT HASIL SUPERVISI AKADEMIK<br/>TAHUN PELAJARAN {academicYear}</h2>
       
       <table className="w-full border-collapse border border-black text-[10px]">

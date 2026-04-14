@@ -17,6 +17,7 @@ import TeacherManagement from "./pages/TeacherManagement";
 import PrincipalProfile from "./pages/PrincipalProfile";
 import AdminPanel from "./pages/AdminPanel";
 import ProgramSupervisi from "./pages/ProgramSupervisi";
+import SupervisionSchedule from "./pages/SupervisionSchedule";
 
 function Layout({ children, user, onLogout }: { children: React.ReactNode, user: User, onLogout: () => void }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -378,6 +379,7 @@ export default function App() {
                   <Route path="/guru" element={user.role === 'KEPALA_SEKOLAH' ? <TeacherManagement user={user} /> : <Navigate to="/" />} />
                   <Route path="/profil" element={user.role === 'KEPALA_SEKOLAH' ? <PrincipalProfile user={user} /> : <Navigate to="/" />} />
                   <Route path="/program-supervisi" element={user.role === 'KEPALA_SEKOLAH' ? <ProgramSupervisi user={user} /> : <Navigate to="/" />} />
+                  <Route path="/jadwal-supervisi" element={user.role === 'KEPALA_SEKOLAH' ? <SupervisionSchedule user={user} /> : <Navigate to="/" />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
               </Layout>

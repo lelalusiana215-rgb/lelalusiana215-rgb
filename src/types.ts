@@ -1,6 +1,21 @@
 export type Role = 'KEPALA_SEKOLAH' | 'GURU' | 'ADMIN';
 export type Status = 'PENDING' | 'ACTIVE' | 'REJECTED';
 
+export interface PlannedSchedule {
+  ganjil?: {
+    stage1?: string;
+    stage2?: string;
+    stage3?: string;
+    stage4?: string;
+  };
+  genap?: {
+    stage1?: string;
+    stage2?: string;
+    stage3?: string;
+    stage4?: string;
+  };
+}
+
 export interface User {
   id: string;
   name: string;
@@ -12,6 +27,7 @@ export interface User {
   teaching_class?: string;
   rank_grade?: string;
   subject?: string;
+  planned_schedule?: PlannedSchedule;
 }
 
 export interface School {
@@ -22,6 +38,7 @@ export interface School {
   logo_school?: string;
   logo_gov?: string;
   status: Status;
+  academic_year?: string;
 }
 
 export interface Supervision {

@@ -18,13 +18,12 @@ export default function TeacherManagement({ user }: { user: User }) {
     teaching_class: "",
     rank_grade: "",
     subject: "",
-    schedule: {
-      stage1: "",
-      stage2: "",
-      stage3: "",
-      stage4: ""
+    planned_schedule: {
+      ganjil: { stage1: "", stage2: "", stage3: "", stage4: "" },
+      genap: { stage1: "", stage2: "", stage3: "", stage4: "" }
     }
   });
+  const [activeTab, setActiveTab] = useState<"profile" | "ganjil" | "genap">("profile");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,7 +67,8 @@ export default function TeacherManagement({ user }: { user: User }) {
             teaching_class: formData.teaching_class,
             rank_grade: formData.rank_grade,
             subject: formData.subject,
-            email: formData.email // Keep email as plain data if provided
+            email: formData.email,
+            planned_schedule: formData.planned_schedule
           });
           setMessage({ type: "success", text: "Data guru berhasil diperbarui." });
         } catch (err) {
@@ -90,6 +90,7 @@ export default function TeacherManagement({ user }: { user: User }) {
             teaching_class: formData.teaching_class || "",
             rank_grade: formData.rank_grade || "",
             subject: formData.subject || "",
+            planned_schedule: formData.planned_schedule,
             status: "ACTIVE",
             created_at: serverTimestamp()
           };
@@ -97,8 +98,8 @@ export default function TeacherManagement({ user }: { user: User }) {
           const docRef = await addDoc(collection(db, "users"), teacherData);
           const teacherId = docRef.id;
 
-          // Create initial supervision if schedule provided
-          if (formData.schedule.stage1) {
+          // Create initial supervision if schedule provided (Ganjil Stage 1)
+          if (formData.planned_schedule.ganjil.stage1) {
             await addDoc(collection(db, "supervisions"), {
               teacher_id: teacherId,
               teacher_name: formData.name,
@@ -107,11 +108,11 @@ export default function TeacherManagement({ user }: { user: User }) {
               principal_name: user.name,
               principal_nip: user.nip || "-",
               school_id: user.school_id,
-              date: formData.schedule.stage1,
-              stage1_date: formData.schedule.stage1,
-              stage2_date: formData.schedule.stage2,
-              stage3_date: formData.schedule.stage3,
-              stage4_date: formData.schedule.stage4,
+              date: formData.planned_schedule.ganjil.stage1,
+              stage1_date: formData.planned_schedule.ganjil.stage1,
+              stage2_date: formData.planned_schedule.ganjil.stage2,
+              stage3_date: formData.planned_schedule.ganjil.stage3,
+              stage4_date: formData.planned_schedule.ganjil.stage4,
               status: "BELUM",
               final_score: 0,
               created_at: serverTimestamp()
@@ -130,8 +131,12 @@ export default function TeacherManagement({ user }: { user: User }) {
       setEditingTeacher(null);
       setFormData({ 
         name: "", email: "", password: "", nip: "", teaching_class: "", rank_grade: "", subject: "",
-        schedule: { stage1: "", stage2: "", stage3: "", stage4: "" }
+        planned_schedule: { 
+          ganjil: { stage1: "", stage2: "", stage3: "", stage4: "" },
+          genap: { stage1: "", stage2: "", stage3: "", stage4: "" }
+        }
       });
+      setActiveTab("profile");
     } catch (err: any) {
       setError(err.message || "Terjadi kesalahan koneksi");
     } finally {
@@ -151,13 +156,12 @@ export default function TeacherManagement({ user }: { user: User }) {
       teaching_class: teacher.teaching_class || "",
       rank_grade: teacher.rank_grade || "",
       subject: teacher.subject || "",
-      schedule: {
-        stage1: "",
-        stage2: "",
-        stage3: "",
-        stage4: ""
+      planned_schedule: teacher.planned_schedule || {
+        ganjil: { stage1: "", stage2: "", stage3: "", stage4: "" },
+        genap: { stage1: "", stage2: "", stage3: "", stage4: "" }
       }
     });
+    setActiveTab("profile");
     setIsModalOpen(true);
   };
 
@@ -462,117 +466,190 @@ export default function TeacherManagement({ user }: { user: User }) {
                   </div>
                 )}
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-6">
-                    <h4 className="text-sm font-bold text-zinc-900 border-l-4 border-emerald-500 pl-3">Data Pribadi Guru</h4>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Nama Lengkap</label>
-                      <input 
-                        type="text" required
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                        placeholder="Nama Guru..."
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Email (Opsional)</label>
-                      <input 
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                        placeholder="email@guru.id"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">NIP</label>
-                      <input 
-                        type="text" required
-                        value={formData.nip}
-                        onChange={(e) => setFormData({ ...formData, nip: e.target.value })}
-                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                        placeholder="NIP Guru..."
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Mata Pelajaran</label>
-                      <input 
-                        type="text" required
-                        value={formData.subject}
-                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                        placeholder="Contoh: Tematik / Matematika"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+                <div className="flex border-b border-zinc-100 mb-6">
+                  <button 
+                    type="button"
+                    onClick={() => setActiveTab("profile")}
+                    className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'profile' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-zinc-400 hover:text-zinc-600'}`}
+                  >
+                    Profil Guru
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setActiveTab("ganjil")}
+                    className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'ganjil' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-zinc-400 hover:text-zinc-600'}`}
+                  >
+                    Jadwal Ganjil
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setActiveTab("genap")}
+                    className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'genap' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-zinc-400 hover:text-zinc-600'}`}
+                  >
+                    Jadwal Genap
+                  </button>
+                </div>
+
+                {activeTab === 'profile' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-6">
+                      <h4 className="text-sm font-bold text-zinc-900 border-l-4 border-emerald-500 pl-3">Data Pribadi Guru</h4>
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Kelas</label>
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Nama Lengkap</label>
                         <input 
                           type="text" required
-                          value={formData.teaching_class}
-                          onChange={(e) => setFormData({ ...formData, teaching_class: e.target.value })}
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                           className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                          placeholder="Contoh: 1A"
+                          placeholder="Nama Guru..."
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Pangkat/Gol</label>
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Email (Opsional)</label>
+                        <input 
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                          placeholder="email@guru.id"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">NIP</label>
                         <input 
                           type="text" required
-                          value={formData.rank_grade}
-                          onChange={(e) => setFormData({ ...formData, rank_grade: e.target.value })}
+                          value={formData.nip}
+                          onChange={(e) => setFormData({ ...formData, nip: e.target.value })}
                           className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                          placeholder="Contoh: III/a"
+                          placeholder="NIP Guru..."
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-6">
+                      <h4 className="text-sm font-bold text-zinc-900 border-l-4 border-emerald-500 pl-3">Data Akademik</h4>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Mata Pelajaran</label>
+                        <input 
+                          type="text" required
+                          value={formData.subject}
+                          onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                          placeholder="Contoh: Tematik / Matematika"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Kelas</label>
+                          <input 
+                            type="text" required
+                            value={formData.teaching_class}
+                            onChange={(e) => setFormData({ ...formData, teaching_class: e.target.value })}
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                            placeholder="Contoh: 1A"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Pangkat/Gol</label>
+                          <input 
+                            type="text" required
+                            value={formData.rank_grade}
+                            onChange={(e) => setFormData({ ...formData, rank_grade: e.target.value })}
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                            placeholder="Contoh: III/a"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'ganjil' && (
+                  <div className="space-y-6">
+                    <h4 className="text-sm font-bold text-zinc-900 border-l-4 border-indigo-500 pl-3">Rencana Jadwal Semester Ganjil</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 1: Administrasi</label>
+                        <input 
+                          type="date"
+                          value={formData.planned_schedule.ganjil.stage1}
+                          onChange={(e) => setFormData({ ...formData, planned_schedule: { ...formData.planned_schedule, ganjil: { ...formData.planned_schedule.ganjil, stage1: e.target.value } } })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 2: Perencanaan</label>
+                        <input 
+                          type="date"
+                          value={formData.planned_schedule.ganjil.stage2}
+                          onChange={(e) => setFormData({ ...formData, planned_schedule: { ...formData.planned_schedule, ganjil: { ...formData.planned_schedule.ganjil, stage2: e.target.value } } })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 3: Pelaksanaan</label>
+                        <input 
+                          type="date"
+                          value={formData.planned_schedule.ganjil.stage3}
+                          onChange={(e) => setFormData({ ...formData, planned_schedule: { ...formData.planned_schedule, ganjil: { ...formData.planned_schedule.ganjil, stage3: e.target.value } } })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 4: Refleksi</label>
+                        <input 
+                          type="date"
+                          value={formData.planned_schedule.ganjil.stage4}
+                          onChange={(e) => setFormData({ ...formData, planned_schedule: { ...formData.planned_schedule, ganjil: { ...formData.planned_schedule.ganjil, stage4: e.target.value } } })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                         />
                       </div>
                     </div>
                   </div>
+                )}
 
-                  {!editingTeacher && (
-                    <div className="space-y-6">
-                      <h4 className="text-sm font-bold text-zinc-900 border-l-4 border-indigo-500 pl-3">Jadwal Supervisi</h4>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 1: Administrasi</label>
-                          <input 
-                            type="date" required
-                            value={formData.schedule.stage1}
-                            onChange={(e) => setFormData({ ...formData, schedule: { ...formData.schedule, stage1: e.target.value } })}
-                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 2: Perencanaan</label>
-                          <input 
-                            type="date" required
-                            value={formData.schedule.stage2}
-                            onChange={(e) => setFormData({ ...formData, schedule: { ...formData.schedule, stage2: e.target.value } })}
-                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 3: Pelaksanaan</label>
-                          <input 
-                            type="date" required
-                            value={formData.schedule.stage3}
-                            onChange={(e) => setFormData({ ...formData, schedule: { ...formData.schedule, stage3: e.target.value } })}
-                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 4: Refleksi</label>
-                          <input 
-                            type="date" required
-                            value={formData.schedule.stage4}
-                            onChange={(e) => setFormData({ ...formData, schedule: { ...formData.schedule, stage4: e.target.value } })}
-                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                          />
-                        </div>
+                {activeTab === 'genap' && (
+                  <div className="space-y-6">
+                    <h4 className="text-sm font-bold text-zinc-900 border-l-4 border-amber-500 pl-3">Rencana Jadwal Semester Genap</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 1: Administrasi</label>
+                        <input 
+                          type="date"
+                          value={formData.planned_schedule.genap.stage1}
+                          onChange={(e) => setFormData({ ...formData, planned_schedule: { ...formData.planned_schedule, genap: { ...formData.planned_schedule.genap, stage1: e.target.value } } })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 2: Perencanaan</label>
+                        <input 
+                          type="date"
+                          value={formData.planned_schedule.genap.stage2}
+                          onChange={(e) => setFormData({ ...formData, planned_schedule: { ...formData.planned_schedule, genap: { ...formData.planned_schedule.genap, stage2: e.target.value } } })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 3: Pelaksanaan</label>
+                        <input 
+                          type="date"
+                          value={formData.planned_schedule.genap.stage3}
+                          onChange={(e) => setFormData({ ...formData, planned_schedule: { ...formData.planned_schedule, genap: { ...formData.planned_schedule.genap, stage3: e.target.value } } })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahap 4: Refleksi</label>
+                        <input 
+                          type="date"
+                          value={formData.planned_schedule.genap.stage4}
+                          onChange={(e) => setFormData({ ...formData, planned_schedule: { ...formData.planned_schedule, genap: { ...formData.planned_schedule.genap, stage4: e.target.value } } })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                        />
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 <div className="pt-6 border-t border-zinc-100 flex gap-4">
                   <button 

@@ -83,8 +83,7 @@ export default function ProgramSupervisi({ user }: { user: User }) {
     return <div>Data sekolah tidak ditemukan.</div>;
   }
 
-  const currentYear = new Date().getFullYear();
-  const academicYear = `${currentYear}/${currentYear + 1}`;
+  const academicYear = school?.academic_year || `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`;
   const printDate = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
   const generateWord = () => {
@@ -348,14 +347,12 @@ export default function ProgramSupervisi({ user }: { user: User }) {
             </div>
             <div className="flex justify-between mt-4 font-bold"><span>LAMPIRAN-LAMPIRAN</span><span></span></div>
             <div className="pl-6 space-y-2">
-              <div className="flex justify-between"><span>Lampiran 1. Jadwal Supervisi Kelas Semester Ganjil</span><span>15</span></div>
-              <div className="flex justify-between"><span>Lampiran 2. Rekapitulasi Rencana Tindak Lanjut</span><span>16</span></div>
-              <div className="flex justify-between"><span>Lampiran 3. Jadwal Supervisi Kelas Semester Genap</span><span>17</span></div>
-              <div className="flex justify-between"><span>Lampiran 5. Instrumen Supervisi RPP</span><span>18</span></div>
-              <div className="flex justify-between"><span>Lampiran 6. Instrumen Percakapan Pra Observasi</span><span>19</span></div>
-              <div className="flex justify-between"><span>Lampiran 7. Instrumen Pelaksanaan Observasi</span><span>20</span></div>
-              <div className="flex justify-between"><span>Lampiran 8. Instrumen Supervisi Pasca Observasi</span><span>22</span></div>
-              <div className="flex justify-between"><span>Lampiran 9. Instrumen Monitoring Administrasi</span><span>24</span></div>
+              <div className="flex justify-between"><span>Lampiran 1. Rekapitulasi Rencana Tindak Lanjut</span><span>15</span></div>
+              <div className="flex justify-between"><span>Lampiran 2. Instrumen Supervisi RPP</span><span>16</span></div>
+              <div className="flex justify-between"><span>Lampiran 3. Instrumen Percakapan Pra Observasi</span><span>17</span></div>
+              <div className="flex justify-between"><span>Lampiran 4. Instrumen Pelaksanaan Observasi</span><span>18</span></div>
+              <div className="flex justify-between"><span>Lampiran 5. Instrumen Supervisi Pasca Observasi</span><span>20</span></div>
+              <div className="flex justify-between"><span>Lampiran 6. Instrumen Monitoring Administrasi</span><span>22</span></div>
             </div>
           </div>
           <div className="text-center mt-12">iii</div>
@@ -366,118 +363,8 @@ export default function ProgramSupervisi({ user }: { user: User }) {
         <Bab3 />
         <Bab4 />
 
-        {/* LAMPIRAN 1: Jadwal Ganjil */}
-        <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
-          <h1 className="text-center font-bold text-xl mb-2 uppercase">Lampiran 1</h1>
-          <h2 className="text-center font-bold text-lg mb-8 uppercase">JADWAL SUPERVISI KELAS OLEH KEPALA SEKOLAH<br/>TAHUN PELAJARAN {academicYear} SEMESTER GANJIL</h2>
-          
-          <table className="w-full border-collapse border border-black text-[10px]">
-            <thead>
-              <tr className="bg-zinc-50">
-                <th className="border border-black p-1 text-center w-8" rowSpan={2}>No</th>
-                <th className="border border-black p-1 text-center" rowSpan={2}>Nama Guru</th>
-                <th className="border border-black p-1 text-center" rowSpan={2}>Mata Pelajaran</th>
-                <th className="border border-black p-1 text-center w-12" rowSpan={2}>Kelas</th>
-                <th className="border border-black p-1 text-center" colSpan={4}>Jadwal Tahapan Supervisi</th>
-                <th className="border border-black p-1 text-center w-12" rowSpan={2}>Ket</th>
-              </tr>
-              <tr className="bg-zinc-50">
-                <th className="border border-black p-1 text-center w-20">Administrasi</th>
-                <th className="border border-black p-1 text-center w-20">Perencanaan</th>
-                <th className="border border-black p-1 text-center w-20">Pelaksanaan</th>
-                <th className="border border-black p-1 text-center w-20">Refleksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teachers.length > 0 ? teachers.map((teacher, index) => {
-                const formatDate = (dateStr: string | null) => {
-                  if (!dateStr) return '..........';
-                  const date = new Date(dateStr);
-                  if (isNaN(date.getTime())) return '..........';
-                  return date.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' });
-                };
-                
-                return (
-                  <tr key={teacher.id}>
-                    <td className="border border-black p-1 text-center">{index + 1}.</td>
-                    <td className="border border-black p-1 font-bold">{teacher.name}</td>
-                    <td className="border border-black p-1">{teacher.subject || 'Tematik'}</td>
-                    <td className="border border-black p-1 text-center">{teacher.teaching_class || '-'}</td>
-                    <td className="border border-black p-1 text-center">{formatDate(teacher.stage1_date)}</td>
-                    <td className="border border-black p-1 text-center">{formatDate(teacher.stage2_date)}</td>
-                    <td className="border border-black p-1 text-center font-bold">{formatDate(teacher.stage3_date)}</td>
-                    <td className="border border-black p-1 text-center">{formatDate(teacher.stage4_date)}</td>
-                    <td className="border border-black p-1"></td>
-                  </tr>
-                );
-              }) : (
-                <tr>
-                  <td colSpan={9} className="border border-black p-4 text-center italic">Belum ada data guru.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          <div className="flex justify-end mt-16 text-md">
-            <div className="text-center">
-              <p>{school.address.split(',')[0] || 'Sekolah'}, {printDate}</p>
-              <p>Kepala Sekolah</p>
-              <br /><br /><br /><br />
-              <p className="font-bold underline">{user.name}</p>
-              <p>NIP. {user.nip || '.........................'}</p>
-            </div>
-          </div>
-          <div className="text-center mt-12">xviii</div>
-        </div>
-
-        {/* LAMPIRAN 3: Jadwal Genap (Empty Format) */}
-        <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
-          <h1 className="text-center font-bold text-xl mb-2 uppercase">Lampiran 3</h1>
-          <h2 className="text-center font-bold text-lg mb-8 uppercase">JADWAL SUPERVISI KELAS OLEH KEPALA SEKOLAH<br/>TAHUN PELAJARAN {academicYear} SEMESTER GENAP</h2>
-          
-          <table className="w-full border-collapse border border-black text-[10px]">
-            <thead>
-              <tr className="bg-zinc-50">
-                <th className="border border-black p-2 text-center w-8">No</th>
-                <th className="border border-black p-2 text-center">Nama Guru</th>
-                <th className="border border-black p-2 text-center">Mata Pelajaran</th>
-                <th className="border border-black p-2 text-center w-16">Kelas</th>
-                <th className="border border-black p-2 text-center">Hari/Tanggal</th>
-                <th className="border border-black p-2 text-center w-12">Ket</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teachers.length > 0 ? teachers.map((teacher, index) => (
-                <tr key={teacher.id}>
-                  <td className="border border-black p-2 text-center">{index + 1}.</td>
-                  <td className="border border-black p-2 font-bold">{teacher.name}</td>
-                  <td className="border border-black p-2">{teacher.subject || 'Tematik'}</td>
-                  <td className="border border-black p-2 text-center">{teacher.teaching_class || '-'}</td>
-                  <td className="border border-black p-2 text-center">....................</td>
-                  <td className="border border-black p-2"></td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={6} className="border border-black p-4 text-center italic">Belum ada data guru.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          <div className="flex justify-end mt-16 text-md">
-            <div className="text-center">
-              <p>{school.address.split(',')[0] || 'Sekolah'}, {printDate}</p>
-              <p>Kepala Sekolah</p>
-              <br /><br /><br /><br />
-              <p className="font-bold underline">{user.name}</p>
-              <p>NIP. {user.nip || '.........................'}</p>
-            </div>
-          </div>
-          <div className="text-center mt-12">xx</div>
-        </div>
-
-        <EmptyInstruments />
         <Lampiran2 user={user} school={school} printDate={printDate} academicYear={academicYear} teachers={teachers} />
+        <EmptyInstruments />
 
       </div>
     </div>

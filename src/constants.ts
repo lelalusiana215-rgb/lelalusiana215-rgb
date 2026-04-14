@@ -1,18 +1,20 @@
 import { InstrumentItem } from "./types";
 
 export const STAGE1_INSTRUMENTS: InstrumentItem[] = [
-  { id: "1.1", text: "Kalender Pendidikan", category: "Administrasi" },
-  { id: "1.2", text: "Program Tahunan", category: "Administrasi" },
-  { id: "1.3", text: "Pemanfaatan Hasil Asesmen Diagnostik", category: "Administrasi" },
-  { id: "1.4", text: "Alur Tujuan Pembelajaran", category: "Administrasi" },
-  { id: "1.5", text: "Modul Ajar", category: "Administrasi" },
-  { id: "1.6", text: "Bahan Ajar/Buku Guru dan Buku Siswa", category: "Administrasi" },
-  { id: "1.7", text: "Jadwal Pelajaran", category: "Administrasi" },
-  { id: "1.8", text: "Program Penilaian", category: "Administrasi" },
-  { id: "1.9", text: "Daftar Nilai / Hasil Asesmen", category: "Administrasi" },
-  { id: "1.10", text: "Agenda Harian", category: "Administrasi" },
-  { id: "1.11", text: "Absensi Murid", category: "Administrasi" },
-  { id: "1.12", text: "Buku Bank Soal", category: "Administrasi" },
+  { id: "1", text: "Kalender Pendidikan", category: "Administrasi" },
+  { id: "2", text: "Program Tahunan", category: "Administrasi" },
+  { id: "3", text: "Program Semester", category: "Administrasi" },
+  { id: "4", text: "Jadwal pelajaran", category: "Administrasi" },
+  { id: "5", text: "Pemanfaatan Hasil Asesmen Diagnostik", category: "Administrasi" },
+  { id: "6", text: "Alur Tujuan Pembelajaran", category: "Administrasi" },
+  { id: "7", text: "Modul Ajar", category: "Administrasi" },
+  { id: "8", text: "Bahan Ajar (BG, BS, dan Referensi)", category: "Administrasi" },
+  { id: "9", text: "Jadwal Pembelajaran", category: "Administrasi" },
+  { id: "10", text: "KKTP", category: "Administrasi" },
+  { id: "11", text: "Daftar Nilai / Hasil Asesmen", category: "Administrasi" },
+  { id: "12", text: "Agenda Harian (Jurnal Guru)", category: "Administrasi" },
+  { id: "13", text: "Daftar Siswa", category: "Administrasi" },
+  { id: "14", text: "Bank Soal (Kisi-Kisi)", category: "Administrasi" },
 ];
 
 export const STAGE2_INSTRUMENTS: InstrumentItem[] = [

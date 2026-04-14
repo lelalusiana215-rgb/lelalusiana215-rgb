@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { User } from "../types";
-import { ShieldCheck, School, MapPin, FileText, Save, User as UserIcon, Sparkles, Key, ArrowLeft, PenTool } from "lucide-react";
+import { ShieldCheck, School, MapPin, FileText, Save, User as UserIcon, Sparkles, Key, ArrowLeft, PenTool, Clock } from "lucide-react";
 import { motion } from "motion/react";
 import { db, auth } from "../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -70,7 +70,8 @@ export default function PrincipalProfile({ user }: { user: User }) {
     school_address: "",
     header_text: "",
     logo_school: "",
-    logo_gov: ""
+    logo_gov: "",
+    academic_year: ""
   });
 
   useEffect(() => {
@@ -93,7 +94,8 @@ export default function PrincipalProfile({ user }: { user: User }) {
           school_address: schoolData.address || "",
           header_text: schoolData.header_text || "",
           logo_school: schoolData.logo_school || "",
-          logo_gov: schoolData.logo_gov || ""
+          logo_gov: schoolData.logo_gov || "",
+          academic_year: schoolData.academic_year || `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`
         });
       }
     } catch (err) {
@@ -176,7 +178,8 @@ export default function PrincipalProfile({ user }: { user: User }) {
           address: formData.school_address,
           header_text: formData.header_text,
           logo_school: formData.logo_school,
-          logo_gov: formData.logo_gov
+          logo_gov: formData.logo_gov,
+          academic_year: formData.academic_year
         });
       } catch (err) {
         handleFirestoreError(err, OperationType.UPDATE, `schools/${user.school_id}`);
@@ -201,6 +204,13 @@ export default function PrincipalProfile({ user }: { user: User }) {
           <p className="text-zinc-500 mt-1">Kelola informasi sekolah, logo, dan profil kepala sekolah.</p>
         </div>
         <div className="flex items-center space-x-3">
+          <Link 
+            to="/jadwal-supervisi"
+            className="flex items-center space-x-2 bg-white text-indigo-600 px-4 py-2 rounded-xl border border-indigo-200 hover:bg-indigo-50 transition-colors font-bold shadow-sm"
+          >
+            <Clock size={18} />
+            <span className="hidden sm:inline">Jadwal Rencana</span>
+          </Link>
           <Link 
             to="/program-supervisi"
             className="flex items-center space-x-2 bg-white text-emerald-600 px-4 py-2 rounded-xl border border-emerald-200 hover:bg-emerald-50 transition-colors font-bold shadow-sm"
@@ -286,6 +296,22 @@ export default function PrincipalProfile({ user }: { user: User }) {
                 onChange={(e) => setFormData({ ...formData, school_address: e.target.value })}
                 className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-h-[100px]"
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahun Ajaran</label>
+              <select 
+                required
+                value={formData.academic_year}
+                onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}
+                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+              >
+                {Array.from({ length: 5 }, (_, i) => {
+                  const year = new Date().getFullYear() - 2 + i;
+                  const academicYear = `${year}/${year + 1}`;
+                  return <option key={academicYear} value={academicYear}>{academicYear}</option>;
+                })}
+              </select>
             </div>
           </div>
         </div>

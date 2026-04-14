@@ -181,19 +181,29 @@ app.post("/api/teachers", async (req, res) => {
 app.delete("/api/teachers/:id", async (req, res) => {
   const { id } = req.params;
   
+  // If Admin SDK is not initialized, we just skip Auth deletion
   if (admin.apps.length === 0) {
-    return res.status(500).json({ error: "Firebase Admin not initialized" });
+    return res.json({ success: true, message: "Admin SDK not initialized, skipping Auth deletion" });
   }
 
   try {
     await admin.auth().deleteUser(id);
     res.json({ success: true, message: "User deleted from Auth" });
   } catch (e: any) {
-    console.error("Error deleting user from Auth:", e);
-    // If user not found in Auth, it's fine, they might have been deleted already
-    if (e.code === 'auth/user-not-found') {
-      return res.json({ success: true, message: "User already deleted or not found in Auth" });
+    console.log("Note: Auth deletion skipped or failed:", e.code || e.message);
+    
+    // We return success even if Auth deletion fails with project/permission errors
+    // because teachers no longer strictly require Auth accounts in the new simplified model.
+    // This prevents the UI from showing an error when deleting a "no-auth" teacher.
+    if (
+      e.code === 'auth/user-not-found' || 
+      e.code === 'auth/internal-error' || 
+      e.message?.includes("identitytoolkit.googleapis.com") ||
+      e.message?.includes("SERVICE_DISABLED")
+    ) {
+      return res.json({ success: true, message: "Teacher profile removed (Auth account skip/not found)" });
     }
+    
     res.status(500).json({ error: e.message || String(e) });
   }
 });
