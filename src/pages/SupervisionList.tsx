@@ -19,7 +19,8 @@ export default function SupervisionList({ user }: { user: User }) {
     stage1_date: "",
     stage2_date: "",
     stage3_date: "",
-    stage4_date: ""
+    stage4_date: "",
+    semester: "ganjil" as "ganjil" | "genap"
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -63,8 +64,9 @@ export default function SupervisionList({ user }: { user: User }) {
     e.preventDefault();
     try {
       const teacher = teachers.find(t => t.id === newSupervision.teacher_id);
+      const { semester, ...supervisionData } = newSupervision;
       const docRef = await addDoc(collection(db, "supervisions"), {
-        ...newSupervision,
+        ...supervisionData,
         school_id: user.school_id,
         principal_id: user.id,
         principal_name: user.name,
@@ -258,17 +260,59 @@ export default function SupervisionList({ user }: { user: User }) {
               </button>
             </div>
             <form onSubmit={handleCreate} className="p-8 space-y-4 max-h-[60vh] overflow-y-auto no-scrollbar">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Pilih Guru</label>
-                <select 
-                  required
-                  value={newSupervision.teacher_id}
-                  onChange={(e) => setNewSupervision({ ...newSupervision, teacher_id: e.target.value })}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                >
-                  <option value="">-- Pilih Guru --</option>
-                  {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Pilih Guru</label>
+                  <select 
+                    required
+                    value={newSupervision.teacher_id}
+                    onChange={(e) => {
+                      const teacherId = e.target.value;
+                      const teacher = teachers.find(t => t.id === teacherId);
+                      const semester = newSupervision.semester;
+                      const schedule = teacher?.planned_schedule?.[semester];
+                      
+                      setNewSupervision({ 
+                        ...newSupervision, 
+                        teacher_id: teacherId,
+                        date: schedule?.stage3 || schedule?.stage1 || "",
+                        stage1_date: schedule?.stage1 || "",
+                        stage2_date: schedule?.stage2 || "",
+                        stage3_date: schedule?.stage3 || "",
+                        stage4_date: schedule?.stage4 || ""
+                      });
+                    }}
+                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                  >
+                    <option value="">-- Pilih Guru --</option>
+                    {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Semester</label>
+                  <select 
+                    value={newSupervision.semester}
+                    onChange={(e) => {
+                      const semester = e.target.value as "ganjil" | "genap";
+                      const teacher = teachers.find(t => t.id === newSupervision.teacher_id);
+                      const schedule = teacher?.planned_schedule?.[semester];
+                      
+                      setNewSupervision({ 
+                        ...newSupervision, 
+                        semester,
+                        date: schedule?.stage3 || schedule?.stage1 || newSupervision.date,
+                        stage1_date: schedule?.stage1 || newSupervision.stage1_date,
+                        stage2_date: schedule?.stage2 || newSupervision.stage2_date,
+                        stage3_date: schedule?.stage3 || newSupervision.stage3_date,
+                        stage4_date: schedule?.stage4 || newSupervision.stage4_date
+                      });
+                    }}
+                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                  >
+                    <option value="ganjil">Ganjil</option>
+                    <option value="genap">Genap</option>
+                  </select>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tanggal Utama Supervisi</label>

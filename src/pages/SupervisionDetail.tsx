@@ -278,10 +278,10 @@ export default function SupervisionDetail({ user }: { user: User }) {
   };
 
   const generateRecommendations = (score: number) => {
-    if (score >= 90) return "Sangat Baik. Pertahankan kualitas pembelajaran dan jadilah mentor bagi guru lain.";
-    if (score >= 80) return "Baik. Tingkatkan inovasi dalam penggunaan media pembelajaran digital.";
-    if (score >= 70) return "Cukup. Perlu penguatan pada aspek pengelolaan kelas dan diferensiasi.";
-    return "Perlu Bimbingan. Diperlukan pendampingan intensif dalam penyusunan perangkat dan pelaksanaan pembelajaran.";
+    if (score >= 91) return "Sangat Baik. Pertahankan kualitas pembelajaran dan jadilah mentor bagi guru lain.";
+    if (score >= 81) return "Baik. Tingkatkan inovasi dalam penggunaan media pembelajaran digital.";
+    if (score >= 71) return "Cukup. Perlu penguatan pada aspek pengelolaan kelas dan diferensiasi.";
+    return "Kurang. Diperlukan pendampingan intensif dalam penyusunan perangkat dan pelaksanaan pembelajaran.";
   };
 
   const formatTime = (s: number) => {
@@ -341,7 +341,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
     let instruments: any[] = [];
     let stageData: StageData;
 
-    if (stageNum === 1) { stageName = "Administrasi Guru"; instruments = STAGE1_INSTRUMENTS; stageData = stage1; }
+    if (stageNum === 1) { stageName = "Administrasi Pembelajaran"; instruments = STAGE1_INSTRUMENTS; stageData = stage1; }
     else if (stageNum === 2) { stageName = "Telaah Alur Tujuan Pembelajaran (ATP)"; instruments = STAGE2_INSTRUMENTS; stageData = stage2; }
     else if (stageNum === 3) { stageName = "Telaah Modul Ajar"; instruments = STAGE3_INSTRUMENTS; stageData = stage3; }
     else if (stageNum === 4) { stageName = "Instrumen Percakapan Pra Observasi"; instruments = PRE_OBSERVATION_INSTRUMENTS; stageData = stage4; }
@@ -370,9 +370,9 @@ export default function SupervisionDetail({ user }: { user: User }) {
       const val = stageData.items[inst.id];
       let result = "";
       if (stageNum === 1) {
-        if (val === 2) result = "Ada dan Sesuai";
-        else if (val === 1) result = "Ada Tidak Sesuai";
-        else result = "Tidak Ada";
+        if (val === 2) result = "Ada dan Sesuai (2)";
+        else if (val === 1) result = "Ada tetapi tidak sesuai (1)";
+        else result = "Tidak Ada (0)";
       } else if (isInterview) {
         result = val ? val.toString() : "-";
       } else {
@@ -708,7 +708,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
     let instruments: any[] = [];
     let stageData: StageData;
 
-    if (stageNum === 1) { stageName = "Administrasi Guru"; instruments = STAGE1_INSTRUMENTS; stageData = stage1; }
+    if (stageNum === 1) { stageName = "Administrasi Pembelajaran"; instruments = STAGE1_INSTRUMENTS; stageData = stage1; }
     else if (stageNum === 2) { stageName = "Telaah Alur Tujuan Pembelajaran (ATP)"; instruments = STAGE2_INSTRUMENTS; stageData = stage2; }
     else if (stageNum === 3) { stageName = "Telaah Modul Ajar"; instruments = STAGE3_INSTRUMENTS; stageData = stage3; }
     else if (stageNum === 4) { stageName = "Instrumen Percakapan Pra Observasi"; instruments = PRE_OBSERVATION_INSTRUMENTS; stageData = stage4; }
@@ -803,9 +803,9 @@ export default function SupervisionDetail({ user }: { user: User }) {
                 const val = stageData.items[inst.id];
                 let result = "";
                 if (stageNum === 1) {
-                  if (val === 2) result = "Ada dan Sesuai";
-                  else if (val === 1) result = "Ada Tidak Sesuai";
-                  else result = "Tidak Ada";
+                  if (val === 2) result = "Ada dan Sesuai (2)";
+                  else if (val === 1) result = "Ada tetapi tidak sesuai (1)";
+                  else result = "Tidak Ada (0)";
                 } else if (isInterview) {
                   result = val ? val.toString() : "-";
                 } else {
@@ -1093,7 +1093,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
   }
 
   const stages = [
-    { id: 1, name: "1. Administrasi", icon: <FileText size={18} /> },
+    { id: 1, name: "1. Administrasi Pembelajaran", icon: <FileText size={18} /> },
     { id: 2, name: "2. Telaah ATP", icon: <PenTool size={18} /> },
     { id: 3, name: "3. Telaah Modul", icon: <PenTool size={18} /> },
     { id: 4, name: "4. Pra Observasi", icon: <MessageSquare size={18} /> },
@@ -1286,7 +1286,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
             <div className="p-8">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-xl font-bold">Tahap 1: Supervisi Administrasi</h3>
+                  <h3 className="text-xl font-bold">Tahap 1: Administrasi Pembelajaran</h3>
                   {supervision.stage1_date && (
                     <p className="text-xs text-zinc-400 mt-1 flex items-center">
                       <Calendar size={12} className="mr-1" />
@@ -1326,9 +1326,9 @@ export default function SupervisionDetail({ user }: { user: User }) {
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                       {[
-                        { val: 0, label: "Tidak Ada" },
-                        { val: 1, label: "Ada Tidak Sesuai" },
-                        { val: 2, label: "Ada Sesuai" }
+                        { val: 0, label: "Tidak Ada (0)" },
+                        { val: 1, label: "Ada tetapi tidak sesuai (1)" },
+                        { val: 2, label: "Ada dan sesuai (2)" }
                       ].map((opt) => (
                         <button
                           key={opt.val}
