@@ -72,11 +72,11 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-6">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+        <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
           <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-8 max-w-3xl"
           >
             <div className="inline-flex items-center space-x-2 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold uppercase tracking-wider">
               <Sparkles size={14} />
@@ -86,10 +86,10 @@ export default function LandingPage() {
               Transformasi Digital <br />
               <span className="text-emerald-600">Supervisi Akademik</span>
             </h1>
-            <p className="text-xl text-zinc-500 leading-relaxed max-w-xl">
+            <p className="text-xl text-zinc-500 leading-relaxed mx-auto">
               Platform cerdas untuk Kepala Sekolah dalam merencanakan, melaksanakan, dan mengevaluasi supervisi akademik secara efisien, akurat, dan profesional.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
                 to="/login" 
                 className="flex items-center justify-center space-x-2 px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20"
@@ -104,37 +104,6 @@ export default function LandingPage() {
                 <PlayCircle size={20} />
                 <span>Coba Demo Gratis</span>
               </Link>
-            </div>
-          </motion.div>
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative"
-          >
-            <div className="aspect-video bg-zinc-900 rounded-[40px] overflow-hidden shadow-2xl border-8 border-white">
-              <img 
-                src="https://picsum.photos/seed/dashboard/1200/800" 
-                alt="Dashboard Preview" 
-                className="w-full h-full object-cover opacity-80"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 cursor-pointer hover:scale-110 transition-transform">
-                  <PlayCircle size={40} fill="currentColor" />
-                </div>
-              </div>
-            </div>
-            {/* Decorative elements */}
-            <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-3xl shadow-xl border border-black/5 hidden md:block">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center">
-                  <BarChart3 size={24} />
-                </div>
-                <div>
-                  <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Akurasi Data</p>
-                  <p className="text-xl font-bold">99.9%</p>
-                </div>
-              </div>
             </div>
           </motion.div>
         </div>
@@ -168,32 +137,22 @@ export default function LandingPage() {
       {/* Features Grid */}
       <section id="fitur" className="py-24 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
+          <div className="max-w-4xl mx-auto space-y-12">
+            <div className="space-y-8 text-center">
               <h2 className="text-4xl font-serif italic font-bold leading-tight">
                 Fitur Lengkap untuk <br />
                 <span className="text-emerald-600">Kendali Penuh</span> Sekolah
               </h2>
-              <p className="text-zinc-500 text-lg">
+              <p className="text-zinc-500 text-lg mx-auto max-w-2xl">
                 Semua instrumen supervisi telah disesuaikan dengan standar terbaru, memudahkan Anda dalam melakukan penilaian yang objektif.
               </p>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
                 {features.map((feat, i) => (
                   <div key={i} className="flex items-center space-x-3 p-4 bg-white rounded-2xl border border-black/5 shadow-sm">
                     <div className="text-emerald-600">{feat.icon}</div>
                     <span className="font-medium text-sm">{feat.name}</span>
                   </div>
                 ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-4 pt-12">
-                <img src="https://picsum.photos/seed/edu1/400/600" alt="Feature 1" className="rounded-[32px] w-full aspect-[3/4] object-cover shadow-lg" referrerPolicy="no-referrer" />
-                <img src="https://picsum.photos/seed/edu2/400/400" alt="Feature 2" className="rounded-[32px] w-full aspect-square object-cover shadow-lg" referrerPolicy="no-referrer" />
-              </div>
-              <div className="space-y-4">
-                <img src="https://picsum.photos/seed/edu3/400/400" alt="Feature 3" className="rounded-[32px] w-full aspect-square object-cover shadow-lg" referrerPolicy="no-referrer" />
-                <img src="https://picsum.photos/seed/edu4/400/600" alt="Feature 4" className="rounded-[32px] w-full aspect-[3/4] object-cover shadow-lg" referrerPolicy="no-referrer" />
               </div>
             </div>
           </div>
@@ -211,15 +170,15 @@ export default function LandingPage() {
               </div>
               <h2 className="text-4xl font-serif italic font-bold">Cara Mengganti API Key</h2>
               <p className="text-white/60 leading-relaxed">
-                Aplikasi ini menggunakan teknologi AI Gemini untuk analisis data. Anda dapat menggunakan API Key milik Anda sendiri untuk kontrol penuh dan kuota yang lebih besar.
+                Aplikasi ini menggunakan teknologi AI Gemini untuk analisis data. Anda dapat menggunakan API Key milik Anda sendiri untuk kontrol penuh dan kuota yang lebih besar melalui menu Data Sekolah.
               </p>
               <ol className="space-y-4">
                 {[
                   "Dapatkan API Key dari Google AI Studio (aistudio.google.com)",
-                  "Masuk ke aplikasi e-Supervisi360 sebagai Admin",
-                  "Buka menu 'Admin Panel' di sidebar",
-                  "Cari bagian 'Konfigurasi API Key'",
-                  "Tempelkan API Key baru Anda dan klik 'Simpan Perubahan'"
+                  "Masuk ke aplikasi e-Supervisi360 sebagai Kepala Sekolah",
+                  "Buka menu 'Data Sekolah' di sidebar",
+                  "Scroll ke bawah hingga menemukan bagian 'Konfigurasi AI (Gemini)'",
+                  "Pilih API Key dari akun Google Anda atau masukkan secara manual"
                 ].map((step, i) => (
                   <li key={i} className="flex items-start space-x-4">
                     <span className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0 font-bold">{i + 1}</span>
@@ -235,7 +194,7 @@ export default function LandingPage() {
                   <div className="w-3 h-3 rounded-full bg-amber-500" />
                   <div className="w-3 h-3 rounded-full bg-emerald-500" />
                 </div>
-                <span className="text-xs text-white/40 font-mono">admin_panel.tsx</span>
+                <span className="text-xs text-white/40 font-mono">data_sekolah.tsx</span>
               </div>
               <div className="space-y-4 font-mono text-sm">
                 <div className="p-4 bg-black/40 rounded-xl border border-white/5">

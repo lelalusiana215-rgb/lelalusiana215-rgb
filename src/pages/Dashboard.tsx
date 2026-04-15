@@ -30,8 +30,8 @@ export default function Dashboard({ user }: { user: User }) {
             });
             
             const teachers = [
-              { name: "Budi Santoso, S.Pd.", nip: "198501012010011001", role: "GURU", school_id: "demo_school", status: "ACTIVE", email: "guru_demo1@sekolah.local" },
-              { name: "Siti Aminah, S.Pd.SD", nip: "198805052015012002", role: "GURU", school_id: "demo_school", status: "ACTIVE", email: "guru_demo2@sekolah.local" }
+              { name: "Budi Santoso, S.Pd.", nip: "198501012010011001", role: "GURU", school_id: "demo_school", status: "ACTIVE", email: "guru_demo1@sekolah.local", created_at: new Date().toISOString() },
+              { name: "Siti Aminah, S.Pd.SD", nip: "198805052015012002", role: "GURU", school_id: "demo_school", status: "ACTIVE", email: "guru_demo2@sekolah.local", created_at: new Date().toISOString() }
             ];
             for (const t of teachers) {
               await addDoc(collection(db, "users"), t);
@@ -40,13 +40,28 @@ export default function Dashboard({ user }: { user: User }) {
             // Add a sample supervision
             await addDoc(collection(db, "supervisions"), {
               school_id: "demo_school",
+              principal_id: user.id,
               teacher_id: "demo_teacher_1",
               teacher_name: "Budi Santoso, S.Pd.",
               date: new Date().toISOString().split('T')[0],
               status: "PROSES",
-              stage1: { items: { "1": 2, "2": 1, "3": 2 }, notes: "Perangkat administrasi cukup lengkap." },
+              stage1_data: { items: { "1": 2, "2": 1, "3": 2 }, notes: "Perangkat administrasi cukup lengkap." },
               created_at: new Date().toISOString()
             });
+
+            // Create the demo user document if it doesn't exist
+            const userRef = doc(db, "users", user.id);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+              await setDoc(userRef, {
+                email: user.email,
+                name: user.name,
+                role: "KEPALA_SEKOLAH",
+                school_id: "demo_school",
+                status: "ACTIVE",
+                created_at: new Date().toISOString()
+              });
+            }
           }
         } catch (e) {
           console.error("Error seeding demo data:", e);
@@ -65,12 +80,21 @@ export default function Dashboard({ user }: { user: User }) {
       return;
     }
 
-    // Query for supervisions related to this user's school
+    // Query for supervisions related to this user
     const supervisionsRef = collection(db, "supervisions");
-    const q = query(
-      supervisionsRef,
-      where("school_id", "==", user.school_id)
-    );
+    let q;
+    
+    if (user.role === 'KEPALA_SEKOLAH') {
+      q = query(
+        supervisionsRef,
+        where("school_id", "==", user.school_id)
+      );
+    } else {
+      q = query(
+        supervisionsRef,
+        where("teacher_id", "==", user.id)
+      );
+    }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const sups = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

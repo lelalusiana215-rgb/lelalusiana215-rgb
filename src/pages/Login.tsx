@@ -48,13 +48,19 @@ export default function Login() {
       await signInWithEmailAndPassword(auth, loginEmail, password);
       navigate("/");
     } catch (err: any) {
-      console.error(err);
+      console.error("Login error:", err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError("Email/NIP atau kata sandi salah");
+        setError("Email/NIP atau kata sandi salah. Pastikan Anda sudah terdaftar dan menggunakan kredensial yang benar.");
+        // If it's invalid-credential, it could also mean the provider is disabled or config is wrong
+        if (err.code === 'auth/invalid-credential') {
+          setConnectionError("Firebase Auth: auth/invalid-credential. Pastikan metode 'Email/Password' sudah diaktifkan di Firebase Console.");
+        }
       } else if (err.code === 'auth/operation-not-allowed') {
         setError("Metode pendaftaran Email/Password belum diaktifkan di Firebase Console. Silakan aktifkan di menu Authentication > Sign-in method.");
+      } else if (err.code === 'auth/network-request-failed') {
+        setError("Gagal terhubung ke server. Periksa koneksi internet Anda.");
       } else {
-        setError("Terjadi kesalahan saat masuk. Silakan coba lagi.");
+        setError("Terjadi kesalahan saat masuk: " + (err.message || "Silakan coba lagi."));
       }
     } finally {
       setLoading(false);
@@ -119,24 +125,26 @@ export default function Login() {
       await signInWithEmailAndPassword(auth, demoEmail, demoPass);
       navigate("/");
     } catch (err: any) {
-      console.error("Demo login failed, checking if account needs creation:", err);
+      console.error("Demo login failed:", err);
       // Jika akun tidak ditemukan atau kredensial tidak valid (karena belum ada)
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
         try {
           // Coba buat akun demo secara otomatis
+          console.log("Attempting to auto-create demo account...");
           await createUserWithEmailAndPassword(auth, demoEmail, demoPass);
           navigate("/");
-          return;
         } catch (createErr: any) {
           console.error("Failed to auto-create demo account:", createErr);
           if (createErr.code === 'auth/email-already-in-use') {
-            setError("Email demo sudah terdaftar tetapi kata sandi salah. Silakan hubungi admin.");
+            setError("Email demo sudah terdaftar tetapi kata sandi berbeda. Silakan gunakan email Anda sendiri untuk mendaftar.");
+          } else if (createErr.code === 'auth/operation-not-allowed') {
+            setError("Metode Email/Password belum diaktifkan di Firebase Console. Silakan hubungi admin.");
           } else {
-            setError("Gagal menyiapkan akun demo otomatis. Silakan coba lagi nanti.");
+            setError(`Gagal menyiapkan akun demo: ${createErr.message || "Kesalahan tidak dikenal"}`);
           }
         }
       } else {
-        setError("Akun demo sedang tidak tersedia. Silakan coba lagi nanti.");
+        setError(`Akun demo tidak dapat diakses: ${err.message || "Kesalahan tidak dikenal"}`);
       }
     } finally {
       setLoading(false);
@@ -159,13 +167,17 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          {connectionStatus === 'offline' && (
+          {(connectionStatus === 'offline' || connectionError) && (
             <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-xs border border-amber-100">
               <div className="flex items-start space-x-3">
-                <WifiOff className="flex-shrink-0 mt-0.5" size={16} />
+                {connectionStatus === 'offline' ? <WifiOff className="flex-shrink-0 mt-0.5" size={16} /> : <AlertCircle className="flex-shrink-0 mt-0.5" size={16} />}
                 <div>
-                  <p className="font-bold">Koneksi ke Database Bermasalah</p>
-                  <p className="mt-1">Aplikasi tidak dapat terhubung ke Firebase. Ini biasanya terjadi karena domain belum diizinkan atau konfigurasi salah.</p>
+                  <p className="font-bold">{connectionStatus === 'offline' ? 'Koneksi Bermasalah' : 'Peringatan Konfigurasi'}</p>
+                  <p className="mt-1">
+                    {connectionStatus === 'offline' 
+                      ? 'Aplikasi tidak dapat terhubung ke Firebase. Periksa domain yang diizinkan.' 
+                      : 'Terdeteksi masalah teknis yang mungkin menghambat proses masuk.'}
+                  </p>
                 </div>
               </div>
               <button 

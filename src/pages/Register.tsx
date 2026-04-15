@@ -126,17 +126,17 @@ export default function Register() {
       setSuccess("Pendaftaran berhasil! Silakan masuk.");
       setTimeout(() => navigate("/login"), 2000);
     } catch (err: any) {
-      console.error(err);
+      console.error("Registration error:", err);
       if (err.code === 'auth/email-already-in-use') {
-        setError("Email sudah terdaftar");
+        setError("Email sudah terdaftar. Silakan gunakan email lain atau masuk dengan akun yang sudah ada.");
       } else if (err.code === 'auth/weak-password') {
         setError("Kata sandi terlalu lemah (minimal 6 karakter)");
       } else if (err.code === 'auth/invalid-credential') {
-        setError("Kredensial tidak valid. Silakan periksa kembali data Anda.");
+        setError("Kredensial tidak valid. Ini bisa terjadi jika konfigurasi Firebase belum lengkap atau domain belum diizinkan.");
       } else if (err.code === 'auth/operation-not-allowed') {
         setError("ERROR KRITIKAL: Metode pendaftaran Email/Password belum diaktifkan di Firebase Console. Silakan aktifkan di menu 'Authentication' > 'Sign-in method' > 'Email/Password'.");
       } else if (err.message.includes("permission-denied") || err.code === "permission-denied") {
-        setError("Akses ditolak oleh sistem keamanan. Silakan hubungi admin.");
+        setError("Akses ditolak oleh sistem keamanan Firestore. Pastikan aturan keamanan (Security Rules) sudah dideploy.");
       } else {
         setError("Terjadi kesalahan saat mendaftar: " + (err.message || "Silakan coba lagi."));
       }

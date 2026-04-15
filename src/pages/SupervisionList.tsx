@@ -32,7 +32,13 @@ export default function SupervisionList({ user }: { user: User }) {
 
     // Listen to supervisions
     const supervisionsRef = collection(db, "supervisions");
-    const qSup = query(supervisionsRef, where("school_id", "==", user.school_id));
+    let qSup;
+    
+    if (user.role === 'KEPALA_SEKOLAH') {
+      qSup = query(supervisionsRef, where("school_id", "==", user.school_id));
+    } else {
+      qSup = query(supervisionsRef, where("teacher_id", "==", user.id));
+    }
     
     const unsubscribeSup = onSnapshot(qSup, (snapshot) => {
       const sups = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supervision));
