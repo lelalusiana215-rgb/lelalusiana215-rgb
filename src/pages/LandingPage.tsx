@@ -65,7 +65,7 @@ export default function LandingPage() {
             <a href="#keunggulan" className="hover:text-emerald-600 transition-colors">Keunggulan</a>
             <a href="#fitur" className="hover:text-emerald-600 transition-colors">Fitur</a>
             <a href="#tutorial" className="hover:text-emerald-600 transition-colors">Tutorial API</a>
-            <Link to="/login" className="px-5 py-2 bg-zinc-900 text-white rounded-full hover:bg-zinc-800 transition-all">Masuk</Link>
+            <Link to="/login" className="text-zinc-400 hover:text-zinc-600 transition-colors">Member Login</Link>
           </div>
         </div>
       </nav>
@@ -94,16 +94,18 @@ export default function LandingPage() {
                 to="/login" 
                 className="flex items-center justify-center space-x-2 px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20"
               >
-                <span>Mulai Sekarang</span>
-                <ArrowRight size={20} />
-              </Link>
-              <Link 
-                to="/login" 
-                className="flex items-center justify-center space-x-2 px-8 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-2xl font-bold hover:bg-zinc-50 transition-all"
-              >
                 <PlayCircle size={20} />
                 <span>Coba Demo Gratis</span>
               </Link>
+              <a 
+                href="http://lynk.id/bugurulela" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center space-x-2 px-8 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-2xl font-bold hover:bg-zinc-50 transition-all"
+              >
+                <ShoppingBag size={20} />
+                <span>Beli Lisensi Penuh</span>
+              </a>
             </div>
           </motion.div>
         </div>
@@ -261,9 +263,9 @@ export default function LandingPage() {
           </div>
           <p className="text-zinc-400 text-sm">© 2024 e-Supervisi360. Dibuat dengan ❤️ untuk Pendidikan Indonesia.</p>
           <div className="flex space-x-6 text-sm font-medium text-zinc-500">
-            <Link to="/login" className="hover:text-emerald-600">Login</Link>
-            <Link to="/register" className="hover:text-emerald-600">Register</Link>
-            <a href="http://lynk.id/bugurulela" className="hover:text-emerald-600">Beli</a>
+            <Link to="/login" className="hover:text-emerald-600">Member Login</Link>
+            <a href="http://lynk.id/bugurulela" className="hover:text-emerald-600">Beli Lisensi</a>
+            <a href="https://wa.me/6285294723793" className="hover:text-emerald-600">Bantuan</a>
           </div>
         </div>
       </footer>

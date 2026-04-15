@@ -322,12 +322,14 @@ export default function App() {
               Silakan selesaikan pendaftaran sekolah Anda terlebih dahulu.
             </p>
             <div className="space-y-3">
-              <Link 
-                to="/register"
+              <a 
+                href="http://lynk.id/bugurulela"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="block w-full px-4 py-3 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors"
               >
-                Daftar Sekarang
-              </Link>
+                Beli Lisensi Penuh
+              </a>
               <button 
                 onClick={handleLogout}
                 className="w-full flex items-center justify-center px-4 py-3 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
