@@ -18,16 +18,25 @@ import PrincipalProfile from "./pages/PrincipalProfile";
 import AdminPanel from "./pages/AdminPanel";
 import ProgramSupervisi from "./pages/ProgramSupervisi";
 import SupervisionSchedule from "./pages/SupervisionSchedule";
+import LandingPage from "./pages/LandingPage";
 
 function Layout({ children, user, onLogout }: { children: React.ReactNode, user: User, onLogout: () => void }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const isDemo = user.email === "demo@supervisi.com";
 
   return (
-    <div className="min-h-screen bg-[#F5F5F0] flex print:bg-white">
-      {/* Sidebar */}
-      <aside className={`bg-[#141414] text-white transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} flex flex-col print:hidden`}>
+    <div className="min-h-screen bg-[#F5F5F0] flex flex-col print:bg-white">
+      {isDemo && (
+        <div className="bg-emerald-600 text-white py-2 px-4 text-center text-xs font-bold flex items-center justify-center space-x-2 z-50">
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+          <span>MODE DEMO AKTIF: Anda sedang menggunakan akun demo publik. Data dapat dilihat oleh pengguna demo lain.</span>
+        </div>
+      )}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <aside className={`bg-[#141414] text-white transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} flex flex-col print:hidden`}>
         <div className="p-6 flex items-center justify-between border-b border-white/10">
           {isSidebarOpen && <span className="font-serif italic text-xl font-bold tracking-tight">e-Supervisi360</span>}
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-white/10 rounded">
@@ -36,7 +45,7 @@ function Layout({ children, user, onLogout }: { children: React.ReactNode, user:
         </div>
 
         <nav className="flex-1 py-6 px-4 space-y-2">
-          <SidebarItem icon={<LayoutDashboard size={20} />} label="Dashboard" to="/" active={location.pathname === '/'} collapsed={!isSidebarOpen} />
+          <SidebarItem icon={<LayoutDashboard size={20} />} label="Dashboard" to="/dashboard" active={location.pathname === '/dashboard'} collapsed={!isSidebarOpen} />
           <SidebarItem icon={<ClipboardCheck size={20} />} label="Supervisi" to="/supervisi" active={location.pathname.startsWith('/supervisi')} collapsed={!isSidebarOpen} />
           {user.role === 'ADMIN' && (
             <SidebarItem icon={<ShieldCheck size={20} />} label="Admin Panel" to="/admin" active={location.pathname === '/admin'} collapsed={!isSidebarOpen} />
@@ -75,7 +84,7 @@ function Layout({ children, user, onLogout }: { children: React.ReactNode, user:
       <main className="flex-1 overflow-auto">
         <header className="bg-white border-b border-black/5 px-8 py-4 flex items-center justify-between sticky top-0 z-10 print:hidden">
           <h1 className="text-lg font-medium text-zinc-800">
-            {location.pathname === '/' ? 'Dashboard Overview' : 
+            {location.pathname === '/dashboard' ? 'Dashboard Overview' : 
              location.pathname === '/supervisi' ? 'Daftar Supervisi' :
              location.pathname === '/guru' ? 'Manajemen Guru' : 
              location.pathname === '/profil' ? 'Data Sekolah' : 'Detail Supervisi'}
@@ -89,6 +98,7 @@ function Layout({ children, user, onLogout }: { children: React.ReactNode, user:
         </div>
       </main>
     </div>
+  </div>
   );
 }
 
@@ -206,6 +216,8 @@ export default function App() {
             const userData = docSnap.data() as User;
             if (firebaseUser.email === "lelalusiana215@gmail.com") {
               setUser({ ...userData, id: firebaseUser.uid, role: "ADMIN", status: "ACTIVE" });
+            } else if (firebaseUser.email === "demo@supervisi.com") {
+              setUser({ ...userData, id: firebaseUser.uid, role: "KEPALA_SEKOLAH", status: "ACTIVE", name: "Demo User (Kepala Sekolah)" });
             } else {
               setUser({ id: firebaseUser.uid, ...userData });
             }
@@ -218,6 +230,15 @@ export default function App() {
                 email: firebaseUser.email,
                 role: "ADMIN",
                 school_id: "admin_school",
+                status: "ACTIVE"
+              } as User);
+            } else if (firebaseUser.email === "demo@supervisi.com") {
+              setUser({
+                id: firebaseUser.uid,
+                name: "Demo User (Kepala Sekolah)",
+                email: firebaseUser.email,
+                role: "KEPALA_SEKOLAH",
+                school_id: "demo_school",
                 status: "ACTIVE"
               } as User);
             } else {
@@ -366,24 +387,25 @@ export default function App() {
         </div>
       ) : (
         <Routes>
-          <Route path="/login" element={user && (user as any).status !== 'UNREGISTERED' ? <Navigate to="/" /> : <Login />} />
-          <Route path="/register" element={user && (user as any).status !== 'UNREGISTERED' ? <Navigate to="/" /> : <Register />} />
+          <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingPage />} />
+          <Route path="/login" element={user && (user as any).status !== 'UNREGISTERED' ? <Navigate to="/dashboard" /> : <Login />} />
+          <Route path="/register" element={user && (user as any).status !== 'UNREGISTERED' ? <Navigate to="/dashboard" /> : <Register />} />
           <Route path="/*" element={
             user ? (
               <Layout user={user} onLogout={handleLogout}>
                 <Routes>
-                  <Route path="/" element={<Dashboard user={user} />} />
+                  <Route path="/dashboard" element={<Dashboard user={user} />} />
                   <Route path="/supervisi" element={<SupervisionList user={user} />} />
                   <Route path="/supervisi/:id" element={<SupervisionDetail user={user} />} />
-                  <Route path="/admin" element={user.role === 'ADMIN' ? <AdminPanel user={user} /> : <Navigate to="/" />} />
-                  <Route path="/guru" element={user.role === 'KEPALA_SEKOLAH' ? <TeacherManagement user={user} /> : <Navigate to="/" />} />
-                  <Route path="/profil" element={user.role === 'KEPALA_SEKOLAH' ? <PrincipalProfile user={user} /> : <Navigate to="/" />} />
-                  <Route path="/program-supervisi" element={user.role === 'KEPALA_SEKOLAH' ? <ProgramSupervisi user={user} /> : <Navigate to="/" />} />
-                  <Route path="/jadwal-supervisi" element={user.role === 'KEPALA_SEKOLAH' ? <SupervisionSchedule user={user} /> : <Navigate to="/" />} />
-                  <Route path="*" element={<Navigate to="/" />} />
+                  <Route path="/admin" element={user.role === 'ADMIN' ? <AdminPanel user={user} /> : <Navigate to="/dashboard" />} />
+                  <Route path="/guru" element={user.role === 'KEPALA_SEKOLAH' ? <TeacherManagement user={user} /> : <Navigate to="/dashboard" />} />
+                  <Route path="/profil" element={user.role === 'KEPALA_SEKOLAH' ? <PrincipalProfile user={user} /> : <Navigate to="/dashboard" />} />
+                  <Route path="/program-supervisi" element={user.role === 'KEPALA_SEKOLAH' ? <ProgramSupervisi user={user} /> : <Navigate to="/dashboard" />} />
+                  <Route path="/jadwal-supervisi" element={user.role === 'KEPALA_SEKOLAH' ? <SupervisionSchedule user={user} /> : <Navigate to="/dashboard" />} />
+                  <Route path="*" element={<Navigate to="/dashboard" />} />
                 </Routes>
               </Layout>
-            ) : <Navigate to="/login" />
+            ) : <Navigate to="/" />
           } />
         </Routes>
       )}

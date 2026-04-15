@@ -5,13 +5,56 @@ import { ClipboardCheck, CheckCircle2, Clock, AlertCircle, TrendingUp, Calendar 
 import { motion } from "motion/react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { db } from "../firebase";
-import { collection, query, where, onSnapshot, orderBy, limit } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, limit, doc, getDoc, setDoc, addDoc } from "firebase/firestore";
 
 export default function Dashboard({ user }: { user: User }) {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ total: 0, completed: 0, ongoing: 0 });
   const [agenda, setAgenda] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user.email === "demo@supervisi.com") {
+      const seedDemoData = async () => {
+        try {
+          const schoolRef = doc(db, "schools", "demo_school");
+          const schoolSnap = await getDoc(schoolRef);
+          if (!schoolSnap.exists()) {
+            await setDoc(schoolRef, {
+              name: "SD Negeri Contoh (DEMO)",
+              address: "Jl. Pendidikan No. 123, Kota Demo",
+              header_text: "DINAS PENDIDIKAN\nSD NEGERI CONTOH (DEMO)",
+              logo_school: "",
+              logo_gov: "",
+              status: "ACTIVE"
+            });
+            
+            const teachers = [
+              { name: "Budi Santoso, S.Pd.", nip: "198501012010011001", role: "GURU", school_id: "demo_school", status: "ACTIVE", email: "guru_demo1@sekolah.local" },
+              { name: "Siti Aminah, S.Pd.SD", nip: "198805052015012002", role: "GURU", school_id: "demo_school", status: "ACTIVE", email: "guru_demo2@sekolah.local" }
+            ];
+            for (const t of teachers) {
+              await addDoc(collection(db, "users"), t);
+            }
+
+            // Add a sample supervision
+            await addDoc(collection(db, "supervisions"), {
+              school_id: "demo_school",
+              teacher_id: "demo_teacher_1",
+              teacher_name: "Budi Santoso, S.Pd.",
+              date: new Date().toISOString().split('T')[0],
+              status: "PROSES",
+              stage1: { items: { "1": 2, "2": 1, "3": 2 }, notes: "Perangkat administrasi cukup lengkap." },
+              created_at: new Date().toISOString()
+            });
+          }
+        } catch (e) {
+          console.error("Error seeding demo data:", e);
+        }
+      };
+      seedDemoData();
+    }
+  }, [user.email]);
 
   useEffect(() => {
     if (!user.id) return;

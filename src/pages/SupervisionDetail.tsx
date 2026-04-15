@@ -173,9 +173,18 @@ export default function SupervisionDetail({ user }: { user: User }) {
     setIsGenerating(true);
     setMessage(null);
     try {
-      // Use custom API key from localStorage if available, then process.env, then import.meta.env
-      const customKey = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
-      const apiKey = customKey || (typeof process !== 'undefined' && process.env ? (process.env as any).GEMINI_API_KEY : null);
+      // Fetch custom API key from Firestore config
+      let apiKey = (typeof process !== 'undefined' && process.env ? (process.env as any).GEMINI_API_KEY : null);
+      
+      try {
+        const { getDoc, doc } = await import("firebase/firestore");
+        const configSnap = await getDoc(doc(db, "config", "gemini"));
+        if (configSnap.exists() && configSnap.data().apiKey) {
+          apiKey = configSnap.data().apiKey;
+        }
+      } catch (configErr) {
+        console.error("Error fetching custom API key:", configErr);
+      }
       
       if (!apiKey) {
         throw new Error("API Key tidak ditemukan.");

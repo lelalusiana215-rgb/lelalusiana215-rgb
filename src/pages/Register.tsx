@@ -131,6 +131,8 @@ export default function Register() {
         setError("Email sudah terdaftar");
       } else if (err.code === 'auth/weak-password') {
         setError("Kata sandi terlalu lemah (minimal 6 karakter)");
+      } else if (err.code === 'auth/invalid-credential') {
+        setError("Kredensial tidak valid. Silakan periksa kembali data Anda.");
       } else if (err.code === 'auth/operation-not-allowed') {
         setError("ERROR KRITIKAL: Metode pendaftaran Email/Password belum diaktifkan di Firebase Console. Silakan aktifkan di menu 'Authentication' > 'Sign-in method' > 'Email/Password'.");
       } else if (err.message.includes("permission-denied") || err.code === "permission-denied") {
@@ -285,6 +287,9 @@ export default function Register() {
         <div className="bg-zinc-50 p-6 border-t border-zinc-100 text-center">
           <p className="text-xs text-zinc-400">
             Sudah punya akun? <Link to="/login" className="text-emerald-600 font-bold hover:underline">Masuk di sini</Link>
+          </p>
+          <p className="text-[10px] text-zinc-400 mt-2 uppercase tracking-wider">
+            Ingin mencoba fitur? <Link to="/login" className="text-emerald-600 font-bold hover:underline">Coba Demo Gratis</Link>
           </p>
         </div>
       </motion.div>

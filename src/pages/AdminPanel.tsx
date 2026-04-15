@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
 import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteDoc, writeBatch } from "firebase/firestore";
 import { User, School } from "../types";
-import { Check, X, School as SchoolIcon, User as UserIcon, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import { Check, X, School as SchoolIcon, User as UserIcon, Loader2, AlertTriangle, RefreshCw, Key, Save } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export default function AdminPanel({ user }: { user: User }) {
@@ -11,6 +11,8 @@ export default function AdminPanel({ user }: { user: User }) {
   const [loading, setLoading] = useState(true);
   const [isResetting, setIsResetting] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [isSavingKey, setIsSavingKey] = useState(false);
 
   useEffect(() => {
     // Fetch schools first to have names for the user list
@@ -23,7 +25,17 @@ export default function AdminPanel({ user }: { user: User }) {
       setSchools(schoolsMap);
     };
 
+    const fetchConfig = async () => {
+      const configSnap = await getDocs(collection(db, "config"));
+      configSnap.forEach(doc => {
+        if (doc.id === "gemini") {
+          setApiKey(doc.data().apiKey || "");
+        }
+      });
+    };
+
     fetchSchools();
+    fetchConfig();
 
     const q = query(collection(db, "users"), where("status", "==", "PENDING"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -97,6 +109,31 @@ export default function AdminPanel({ user }: { user: User }) {
     }
   };
 
+  const handleSaveApiKey = async () => {
+    setIsSavingKey(true);
+    setMessage({ type: "", text: "" });
+    try {
+      await updateDoc(doc(db, "config", "gemini"), { apiKey });
+      setMessage({ type: "success", text: "API Key berhasil diperbarui!" });
+    } catch (err: any) {
+      console.error("Error saving API key:", err);
+      // If document doesn't exist, create it
+      if (err.code === 'not-found') {
+        try {
+          const { setDoc } = await import("firebase/firestore");
+          await setDoc(doc(db, "config", "gemini"), { apiKey });
+          setMessage({ type: "success", text: "API Key berhasil diperbarui!" });
+        } catch (createErr) {
+          setMessage({ type: "error", text: "Gagal menyimpan API Key." });
+        }
+      } else {
+        setMessage({ type: "error", text: "Gagal menyimpan API Key." });
+      }
+    } finally {
+      setIsSavingKey(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -132,6 +169,45 @@ export default function AdminPanel({ user }: { user: User }) {
       )}
 
       <div className="grid gap-4">
+        {/* API Key Configuration */}
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-black/5 space-y-6">
+          <div className="flex items-center gap-3 text-zinc-800">
+            <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
+              <Key size={20} />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold">Konfigurasi API Key Gemini</h3>
+              <p className="text-sm text-zinc-500">Gunakan API Key Anda sendiri untuk analisis AI.</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-zinc-700 ml-1">Gemini API Key</label>
+              <div className="flex gap-3">
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Masukkan API Key Gemini..."
+                  className="flex-1 px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-mono text-sm"
+                />
+                <button
+                  onClick={handleSaveApiKey}
+                  disabled={isSavingKey}
+                  className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSavingKey ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                  Simpan
+                </button>
+              </div>
+              <p className="text-xs text-zinc-400 ml-1 italic">
+                * Dapatkan API Key gratis di <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="text-emerald-600 underline">Google AI Studio</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <AnimatePresence mode="popLayout">
           {pendingUsers.length === 0 ? (
             <motion.div 

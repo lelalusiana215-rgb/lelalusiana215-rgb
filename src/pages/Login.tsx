@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { LogIn, ShieldCheck, Chrome, Wifi, WifiOff, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { auth, googleProvider, db } from "../firebase";
-import { signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail, createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, getDocFromServer } from "firebase/firestore";
 
 export default function Login() {
@@ -103,6 +103,40 @@ export default function Login() {
         setError("Domain ini belum diizinkan di Firebase Console. Silakan tambahkan domain 'e-supervisi.my.id' ke menu 'Authentication' > 'Settings' > 'Authorized domains' di Firebase Console.");
       } else {
         setError("Gagal masuk dengan Google. Silakan coba lagi.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setLoading(true);
+    setError("");
+    const demoEmail = "demo@supervisi.com";
+    const demoPass = "demo123456";
+    try {
+      // Coba masuk terlebih dahulu
+      await signInWithEmailAndPassword(auth, demoEmail, demoPass);
+      navigate("/");
+    } catch (err: any) {
+      console.error("Demo login failed, checking if account needs creation:", err);
+      // Jika akun tidak ditemukan atau kredensial tidak valid (karena belum ada)
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+        try {
+          // Coba buat akun demo secara otomatis
+          await createUserWithEmailAndPassword(auth, demoEmail, demoPass);
+          navigate("/");
+          return;
+        } catch (createErr: any) {
+          console.error("Failed to auto-create demo account:", createErr);
+          if (createErr.code === 'auth/email-already-in-use') {
+            setError("Email demo sudah terdaftar tetapi kata sandi salah. Silakan hubungi admin.");
+          } else {
+            setError("Gagal menyiapkan akun demo otomatis. Silakan coba lagi nanti.");
+          }
+        }
+      } else {
+        setError("Akun demo sedang tidak tersedia. Silakan coba lagi nanti.");
       }
     } finally {
       setLoading(false);
@@ -270,6 +304,18 @@ export default function Login() {
             <Chrome size={20} className="text-red-500" />
             <span>Masuk dengan Google</span>
           </button>
+
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={loading}
+              className="w-full bg-emerald-50 text-emerald-700 py-4 rounded-xl font-bold hover:bg-emerald-100 transition-all flex items-center justify-center space-x-2 border border-emerald-200/50"
+            >
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              <span>Coba Demo Gratis (Terbatas)</span>
+            </button>
+          </div>
 
           <div className="text-center space-y-4">
             <p className="text-xs text-zinc-400">
