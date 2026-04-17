@@ -39,6 +39,11 @@ export default function Register() {
       return;
     }
 
+    if (licenseKey !== "123456") {
+      setError("Kode Lisensi tidak valid. Silakan masukkan kode yang benar atau hubungi admin.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
@@ -90,6 +95,11 @@ export default function Register() {
     e.preventDefault();
     if (!licenseKey) {
       setError("Kode Lisensi wajib diisi.");
+      return;
+    }
+    
+    if (licenseKey !== "123456") {
+      setError("Kode Lisensi tidak valid. Silakan masukkan kode yang benar atau hubungi admin.");
       return;
     }
     
