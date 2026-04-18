@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { User } from "../types";
-import { ShieldCheck, School, MapPin, FileText, Save, User as UserIcon, Sparkles, Key, ArrowLeft, PenTool, Clock } from "lucide-react";
+import { ShieldCheck, School, MapPin, FileText, Save, User as UserIcon, Sparkles, Key, ArrowLeft, PenTool, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { db, auth } from "../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { Link } from "react-router-dom";
+import { GoogleGenAI } from "@google/genai";
 
 enum OperationType {
   CREATE = 'create',
@@ -63,6 +64,8 @@ export default function PrincipalProfile({ user }: { user: User }) {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [customApiKey, setCustomApiKey] = useState(localStorage.getItem('CUSTOM_GEMINI_API_KEY') || "");
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [testingApiKey, setTestingApiKey] = useState(false);
+  const [apiKeyStatus, setApiKeyStatus] = useState<'none' | 'valid' | 'invalid'>('none');
   const [formData, setFormData] = useState({
     name: "",
     nip: "",
@@ -155,6 +158,36 @@ export default function PrincipalProfile({ user }: { user: User }) {
         img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCheckApiKey = async () => {
+    if (!customApiKey.trim()) {
+      setMessage({ type: "error", text: "Silakan masukkan API Key terlebih dahulu." });
+      return;
+    }
+
+    setTestingApiKey(true);
+    setApiKeyStatus('none');
+    try {
+      const ai = new GoogleGenAI({ apiKey: customApiKey.trim() });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: "Say 'OK'",
+      });
+      
+      if (response.text) {
+        setApiKeyStatus('valid');
+        setMessage({ type: "success", text: "API Key valid dan aktif!" });
+      } else {
+        throw new Error("Respon kosong dari AI.");
+      }
+    } catch (err: any) {
+      console.error("API Key Check Error:", err);
+      setApiKeyStatus('invalid');
+      setMessage({ type: "error", text: "API Key tidak valid atau tidak aktif. Detail: " + (err.message || "Pastikan kunci benar dan kuota mencukupi.") });
+    } finally {
+      setTestingApiKey(false);
     }
   };
 
@@ -463,7 +496,25 @@ export default function PrincipalProfile({ user }: { user: User }) {
                 />
                 <p className="text-[10px] text-zinc-400 italic">API Key ini akan disimpan secara lokal di browser Anda. Gunakan jika fitur "Pilih API Key" tidak tersedia.</p>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={testingApiKey}
+                  onClick={handleCheckApiKey}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                    apiKeyStatus === 'valid' 
+                      ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                      : apiKeyStatus === 'invalid'
+                      ? 'bg-red-100 text-red-700 border border-red-200'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
+                >
+                  {testingApiKey ? <Loader2 size={16} className="animate-spin" /> : 
+                   apiKeyStatus === 'valid' ? <CheckCircle2 size={16} /> : 
+                   apiKeyStatus === 'invalid' ? <XCircle size={16} /> : <Key size={16} />}
+                  <span>{testingApiKey ? 'Mengecek...' : apiKeyStatus === 'valid' ? 'Aktif' : apiKeyStatus === 'invalid' ? 'Tidak Aktif' : 'Cek Keaktifan'}</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
