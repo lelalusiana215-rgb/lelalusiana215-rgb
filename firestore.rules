@@ -179,6 +179,11 @@ service cloud.firestore {
       );
     }
 
+    match /config/demo_access {
+      allow read: if true;
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.token.email == "demo@supervisi.com");
+    }
+
     match /config/{configId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();

@@ -4,7 +4,7 @@ import { LogIn, ShieldCheck, Chrome, Wifi, WifiOff, AlertCircle, ArrowLeft } fro
 import { motion, AnimatePresence } from "motion/react";
 import { auth, googleProvider, db } from "../firebase";
 import { signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, getDocFromServer } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -37,7 +37,11 @@ export default function Login() {
     } catch (err: any) {
       console.error("Login error:", err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError("Email/NIP atau kata sandi salah. Pastikan Anda sudah terdaftar dan menggunakan kredensial yang benar.");
+        if (email === "lelalusiana215@gmail.com") {
+          setError("Gagal masuk sebagai Admin. Pastikan kata sandi benar. Jika Anda lupa, gunakan fitur Lupa Kata Sandi.");
+        } else {
+          setError("Email/NIP atau kata sandi salah. Pastikan Anda sudah terdaftar dan menggunakan kredensial yang benar.");
+        }
         
         // Detailed guidance for developers/admins
         if (err.code === 'auth/invalid-credential') {
@@ -109,8 +113,36 @@ export default function Login() {
     setError("");
     const demoEmail = "demo@supervisi.com";
     const demoPass = "demo123456";
+    
     try {
+      // 1. Check Demo Limit from Firestore
+      const demoRef = doc(db, "config", "demo_access");
+      const demoSnap = await getDoc(demoRef);
+      
+      if (demoSnap.exists()) {
+        const data = demoSnap.data();
+        if (data.count >= 3) {
+          setError("Batas penggunaan akun demo telah tercapai (Maksimum 3 kali login). Silakan beli lisensi penuh untuk melanjutkan.");
+          setLoading(false);
+          return;
+        }
+      }
+
       await signInWithEmailAndPassword(auth, demoEmail, demoPass);
+      
+      // 2. Increment login count after successful login
+      if (demoSnap.exists()) {
+        await updateDoc(demoRef, {
+          count: increment(1),
+          last_login: new Date().toISOString()
+        });
+      } else {
+        await setDoc(demoRef, {
+          count: 1,
+          last_login: new Date().toISOString()
+        });
+      }
+      
       navigate("/");
     } catch (err: any) {
       console.error("Demo login failed:", err);
@@ -119,6 +151,9 @@ export default function Login() {
         try {
           console.log("Attempting to auto-create demo account...");
           await createUserWithEmailAndPassword(auth, demoEmail, demoPass);
+          // Also initialize the counter if it's a new account
+          const demoRef = doc(db, "config", "demo_access");
+          await setDoc(demoRef, { count: 1, last_login: new Date().toISOString() });
           navigate("/");
         } catch (createErr: any) {
           console.error("Failed to auto-create demo account:", createErr);
@@ -266,10 +301,8 @@ export default function Login() {
                         <div className="space-y-2">
                           <p className="text-zinc-400">2. Langkah Perbaikan:</p>
                           <ul className="list-disc list-inside space-y-1 text-zinc-300">
-                            <li>Buka <a href="https://console.firebase.google.com" target="_blank" className="text-emerald-400 underline">Firebase Console</a></li>
-                            <li>Pilih Proyek: <span className="text-white font-mono">gen-lang-client-0369480188</span></li>
-                            <li>Menu: <span className="text-white">Authentication</span> &gt; <span className="text-white">Sign-in method</span></li>
-                            <li>Aktifkan: <span className="text-emerald-400 font-bold">Email/Password</span></li>
+                            <li>Buka <a href="https://console.firebase.google.com/project/gen-lang-client-0369480188/authentication/providers" target="_blank" className="text-emerald-400 underline font-bold">Firebase Console (Klik Disini)</a></li>
+                            <li>Pastikan status: <span className="text-emerald-400 font-bold">Email/Password Aktif</span></li>
                             <li>Menu: <span className="text-white">Settings</span> &gt; <span className="text-white">Authorized domains</span></li>
                             <li>Tambahkan: <span className="text-emerald-400 font-mono">{window.location.hostname}</span></li>
                           </ul>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "../types";
-import { ClipboardCheck, CheckCircle2, Clock, AlertCircle, TrendingUp, Calendar } from "lucide-react";
+import { ClipboardCheck, CheckCircle2, Clock, AlertCircle, TrendingUp, Calendar, User as UserIcon, School } from "lucide-react";
 import { motion } from "motion/react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { db } from "../firebase";
@@ -10,6 +10,9 @@ import { collection, query, where, onSnapshot, orderBy, limit, doc, getDoc, setD
 export default function Dashboard({ user }: { user: User }) {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ total: 0, completed: 0, ongoing: 0 });
+  const [adminStats, setAdminStats] = useState({ totalUsers: 0, totalSchools: 0, activeSchools: 0, pendingSchools: 0 });
+  const [registeredSchools, setRegisteredSchools] = useState<any[]>([]);
+  const [registeredUsers, setRegisteredUsers] = useState<any[]>([]);
   const [agenda, setAgenda] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -74,10 +77,41 @@ export default function Dashboard({ user }: { user: User }) {
   useEffect(() => {
     if (!user.id) return;
 
-    // Admin doesn't have a specific school dashboard yet
     if (user.role === 'ADMIN') {
+      const schoolsRef = collection(db, "schools");
+      const usersRef = collection(db, "users");
+
+      const unsubSchools = onSnapshot(schoolsRef, (snapshot) => {
+        const schools = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const active = schools.filter((s: any) => s.status === 'ACTIVE').length;
+        const pending = schools.filter((s: any) => s.status === 'PENDING').length;
+        
+        setAdminStats(prev => ({ ...prev, totalSchools: schools.length, activeSchools: active, pendingSchools: pending }));
+        // Sort by created_at desc if exists
+        const sorted = [...schools].sort((a: any, b: any) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA;
+        });
+        setRegisteredSchools(sorted.slice(0, 10));
+      });
+
+      const unsubUsers = onSnapshot(usersRef, (snapshot) => {
+        const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAdminStats(prev => ({ ...prev, totalUsers: snapshot.size }));
+        const sortedUsers = [...users].sort((a: any, b: any) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA;
+        });
+        setRegisteredUsers(sortedUsers.slice(0, 10));
+      });
+      
       setLoading(false);
-      return;
+      return () => {
+        unsubSchools();
+        unsubUsers();
+      };
     }
 
     // Query for supervisions related to this user
@@ -146,6 +180,120 @@ export default function Dashboard({ user }: { user: User }) {
             </button>
           </div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+        </div>
+
+        {/* Admin Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <StatCard 
+            title="Total Pengguna" 
+            value={adminStats.totalUsers} 
+            icon={<UserIcon className="text-blue-500" />} 
+            trend="Total akun terdaftar"
+            color="blue"
+          />
+          <StatCard 
+            title="Total Sekolah" 
+            value={adminStats.totalSchools} 
+            icon={<School className="text-indigo-500" />} 
+            trend="Seluruh sekolah"
+            color="indigo"
+          />
+          <StatCard 
+            title="Sekolah Aktif" 
+            value={adminStats.activeSchools} 
+            icon={<CheckCircle2 className="text-emerald-500" />} 
+            trend="Lisensi aktif"
+            color="emerald"
+          />
+          <StatCard 
+            title="Selesai Ditinjau" 
+            value={adminStats.pendingSchools} 
+            icon={<AlertCircle className="text-amber-500" />} 
+            trend="Perlu verifikasi"
+            color="amber"
+          />
+        </div>
+
+        {/* Registered Schools and Users List */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Schools List */}
+          <div className="bg-white p-8 rounded-3xl border border-black/5 shadow-sm">
+            <h3 className="text-lg font-bold mb-6 flex items-center">
+              <School className="mr-2 text-emerald-500" size={20} />
+              Sekolah Terdaftar Terkini
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100">
+                    <th className="pb-4">Nama Sekolah</th>
+                    <th className="pb-4">Status</th>
+                    <th className="pb-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {registeredSchools.map((s: any) => (
+                    <tr key={s.id} className="group">
+                      <td className="py-4">
+                        <p className="text-sm font-bold text-zinc-900">{s.name}</p>
+                        <p className="text-[10px] text-zinc-500 truncate max-w-[200px]">{s.address}</p>
+                      </td>
+                      <td className="py-4">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${
+                          s.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                        }`}>
+                          {s.status}
+                        </span>
+                      </td>
+                      <td className="py-4 text-right">
+                        <button 
+                          onClick={() => navigate('/admin')}
+                          className="text-xs font-bold text-emerald-600 hover:underline"
+                        >
+                          Detail
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Users List */}
+          <div className="bg-white p-8 rounded-3xl border border-black/5 shadow-sm">
+            <h3 className="text-lg font-bold mb-6 flex items-center">
+              <UserIcon className="mr-2 text-blue-500" size={20} />
+              Pengguna Terdaftar Terkini
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100">
+                    <th className="pb-4">Nama Pengguna</th>
+                    <th className="pb-4">Role</th>
+                    <th className="pb-4">Email</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {registeredUsers.map((u: any) => (
+                    <tr key={u.id} className="group">
+                      <td className="py-4">
+                        <p className="text-sm font-bold text-zinc-900">{u.name}</p>
+                        <p className="text-[10px] text-zinc-500">{u.nip || 'NIP -'}</p>
+                      </td>
+                      <td className="py-4">
+                        <span className="text-[10px] font-bold px-2 py-1 bg-zinc-100 text-zinc-600 rounded-md">
+                          {u.role?.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="py-4 text-[10px] text-zinc-500">{u.email}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     );
