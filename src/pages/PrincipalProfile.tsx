@@ -422,126 +422,128 @@ export default function PrincipalProfile({ user }: { user: User }) {
           </div>
         </div>
 
-        {/* AI Configuration Section */}
-        <div className="bg-white p-8 rounded-3xl border border-black/5 shadow-sm space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold flex items-center">
-              <Sparkles className="mr-2 text-purple-500" size={20} />
-              Konfigurasi AI (Gemini)
-            </h3>
-            <a 
-              href="https://aistudio.google.com/app/apikey" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-[10px] font-bold text-purple-600 hover:underline flex items-center"
-            >
-              Dapatkan API Key di Google AI Studio
-              <ArrowLeft size={10} className="ml-1 rotate-180" />
-            </a>
-          </div>
-          
-          <div className="p-6 bg-purple-50 rounded-2xl border border-purple-100 space-y-4">
-            <p className="text-sm text-purple-900 leading-relaxed">
-              Fitur AI digunakan untuk memberikan rekomendasi supervisi otomatis. 
-              Anda dapat menggunakan API Key dari Google AI Studio untuk mengaktifkan fitur ini.
-            </p>
+        {/* AI Configuration Section - Hidden for Demo Account */}
+        {user.email !== "demo@supervisi.com" && (
+          <div className="bg-white p-8 rounded-3xl border border-black/5 shadow-sm space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold flex items-center">
+                <Sparkles className="mr-2 text-purple-500" size={20} />
+                Konfigurasi AI (Gemini)
+              </h3>
+              <a 
+                href="https://aistudio.google.com/app/apikey" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[10px] font-bold text-purple-600 hover:underline flex items-center"
+              >
+                Dapatkan API Key di Google AI Studio
+                <ArrowLeft size={10} className="ml-1 rotate-180" />
+              </a>
+            </div>
             
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    if (typeof (window as any).aistudio !== 'undefined' && (window as any).aistudio.openSelectKey) {
-                      await (window as any).aistudio.openSelectKey();
-                      setMessage({ type: "success", text: "Dialog pemilihan API Key berhasil dibuka." });
-                    } else {
+            <div className="p-6 bg-purple-50 rounded-2xl border border-purple-100 space-y-4">
+              <p className="text-sm text-purple-900 leading-relaxed">
+                Fitur AI digunakan untuk memberikan rekomendasi supervisi otomatis. 
+                Anda dapat menggunakan API Key dari Google AI Studio untuk mengaktifkan fitur ini.
+              </p>
+              
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      if (typeof (window as any).aistudio !== 'undefined' && (window as any).aistudio.openSelectKey) {
+                        await (window as any).aistudio.openSelectKey();
+                        setMessage({ type: "success", text: "Dialog pemilihan API Key berhasil dibuka." });
+                      } else {
+                        setShowApiKeyInput(true);
+                      }
+                    } catch (err) {
+                      console.error("Error opening API Key dialog:", err);
                       setShowApiKeyInput(true);
                     }
-                  } catch (err) {
-                    console.error("Error opening API Key dialog:", err);
-                    setShowApiKeyInput(true);
-                  }
-                }}
-                className="flex items-center space-x-2 bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 transition-all font-bold shadow-lg shadow-purple-200"
-              >
-                <Key size={18} />
-                <span>Pilih API Key (Akun Google)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-                className="flex items-center space-x-2 bg-white text-purple-600 px-6 py-3 rounded-xl border border-purple-200 hover:bg-purple-50 transition-all font-bold"
-              >
-                <PenTool size={18} />
-                <span>Input Manual</span>
-              </button>
-            </div>
-          </div>
-          
-          {showApiKeyInput && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-4 p-6 bg-zinc-50 rounded-2xl border border-zinc-200"
-            >
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">API Key Gemini Kustom</label>
-                <input
-                  type="password"
-                  value={customApiKey}
-                  onChange={(e) => setCustomApiKey(e.target.value)}
-                  placeholder="Masukkan API Key Anda di sini..."
-                  className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                />
-                <p className="text-[10px] text-zinc-400 italic">API Key ini akan disimpan secara lokal di browser Anda. Gunakan jika fitur "Pilih API Key" tidak tersedia.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  disabled={testingApiKey}
-                  onClick={handleCheckApiKey}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                    apiKeyStatus === 'valid' 
-                      ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
-                      : apiKeyStatus === 'invalid'
-                      ? 'bg-red-100 text-red-700 border border-red-200'
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                  }`}
-                >
-                  {testingApiKey ? <Loader2 size={16} className="animate-spin" /> : 
-                   apiKeyStatus === 'valid' ? <CheckCircle2 size={16} /> : 
-                   apiKeyStatus === 'invalid' ? <XCircle size={16} /> : <Key size={16} />}
-                  <span>{testingApiKey ? 'Mengecek...' : apiKeyStatus === 'valid' ? 'Aktif' : apiKeyStatus === 'invalid' ? 'Tidak Aktif' : 'Cek Keaktifan'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (customApiKey.trim()) {
-                      localStorage.setItem('CUSTOM_GEMINI_API_KEY', customApiKey.trim());
-                      setMessage({ type: "success", text: "API Key kustom berhasil disimpan di perangkat ini." });
-                    } else {
-                      localStorage.removeItem('CUSTOM_GEMINI_API_KEY');
-                      setMessage({ type: "success", text: "API Key kustom dihapus. Menggunakan key bawaan sistem." });
-                    }
-                    setShowApiKeyInput(false);
                   }}
-                  className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all"
+                  className="flex items-center space-x-2 bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 transition-all font-bold shadow-lg shadow-purple-200"
                 >
-                  Simpan
+                  <Key size={18} />
+                  <span>Pilih API Key (Akun Google)</span>
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => setShowApiKeyInput(false)}
-                  className="px-4 py-2 bg-white text-zinc-600 border border-zinc-200 rounded-xl text-sm font-bold hover:bg-zinc-50 transition-all"
+                  onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+                  className="flex items-center space-x-2 bg-white text-purple-600 px-6 py-3 rounded-xl border border-purple-200 hover:bg-purple-50 transition-all font-bold"
                 >
-                  Batal
+                  <PenTool size={18} />
+                  <span>Input Manual</span>
                 </button>
               </div>
-            </motion.div>
-          )}
-        </div>
+            </div>
+            
+            {showApiKeyInput && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-4 p-6 bg-zinc-50 rounded-2xl border border-zinc-200"
+              >
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">API Key Gemini Kustom</label>
+                  <input
+                    type="password"
+                    value={customApiKey}
+                    onChange={(e) => setCustomApiKey(e.target.value)}
+                    placeholder="Masukkan API Key Anda di sini..."
+                    className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  />
+                  <p className="text-[10px] text-zinc-400 italic">API Key ini akan disimpan secara lokal di browser Anda. Gunakan jika fitur "Pilih API Key" tidak tersedia.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={testingApiKey}
+                    onClick={handleCheckApiKey}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                      apiKeyStatus === 'valid' 
+                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                        : apiKeyStatus === 'invalid'
+                        ? 'bg-red-100 text-red-700 border border-red-200'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                  >
+                    {testingApiKey ? <Loader2 size={16} className="animate-spin" /> : 
+                     apiKeyStatus === 'valid' ? <CheckCircle2 size={16} /> : 
+                     apiKeyStatus === 'invalid' ? <XCircle size={16} /> : <Key size={16} />}
+                    <span>{testingApiKey ? 'Mengecek...' : apiKeyStatus === 'valid' ? 'Aktif' : apiKeyStatus === 'invalid' ? 'Tidak Aktif' : 'Cek Keaktifan'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (customApiKey.trim()) {
+                        localStorage.setItem('CUSTOM_GEMINI_API_KEY', customApiKey.trim());
+                        setMessage({ type: "success", text: "API Key kustom berhasil disimpan di perangkat ini." });
+                      } else {
+                        localStorage.removeItem('CUSTOM_GEMINI_API_KEY');
+                        setMessage({ type: "success", text: "API Key kustom dihapus. Menggunakan key bawaan sistem." });
+                      }
+                      setShowApiKeyInput(false);
+                    }}
+                    className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all"
+                  >
+                    Simpan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKeyInput(false)}
+                    className="px-4 py-2 bg-white text-zinc-600 border border-zinc-200 rounded-xl text-sm font-bold hover:bg-zinc-50 transition-all"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-end">
           <button 
