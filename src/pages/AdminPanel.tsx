@@ -285,8 +285,8 @@ export default function AdminPanel({ user }: { user: User }) {
                 <div>
                   <p className="text-sm font-bold text-zinc-700 uppercase tracking-wider mb-1">Penggunaan Demo Saat Ini</p>
                   <div className="flex items-center gap-2">
-                    <span className={`text-2xl font-bold ${demoLoginCount !== null && demoLoginCount >= 3 ? 'text-red-600' : 'text-emerald-600'}`}>
-                      {demoLoginCount !== null ? demoLoginCount : '-'} / 3
+                    <span className={`text-2xl font-bold ${demoLoginCount !== null && demoLoginCount >= 50 ? 'text-red-600' : 'text-emerald-600'}`}>
+                      {demoLoginCount !== null ? demoLoginCount : '-'} / 50
                     </span>
                     <span className="text-xs text-zinc-400 uppercase tracking-widest font-medium">Kali Login</span>
                   </div>

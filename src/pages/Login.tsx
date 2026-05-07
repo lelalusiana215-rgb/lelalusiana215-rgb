@@ -121,8 +121,8 @@ export default function Login() {
       
       if (demoSnap.exists()) {
         const data = demoSnap.data();
-        if (data.count >= 3) {
-          setError("Batas penggunaan akun demo telah tercapai (Maksimum 3 kali login). Silakan beli lisensi penuh untuk melanjutkan.");
+        if (data.count >= 50) {
+          setError("Batas penggunaan akun demo telah tercapai. Silakan hubungi admin atau beli lisensi penuh untuk akses tanpa batas.");
           setLoading(false);
           return;
         }
@@ -154,6 +154,26 @@ export default function Login() {
           // Also initialize the counter if it's a new account
           const demoRef = doc(db, "config", "demo_access");
           await setDoc(demoRef, { count: 1, last_login: new Date().toISOString() });
+          
+          // Create user profile document
+          await setDoc(doc(db, "users", auth.currentUser!.uid), {
+            name: "Kepala Sekolah (Demo)",
+            email: demoEmail,
+            role: "KEPALA_SEKOLAH",
+            school_id: "demo_school",
+            status: "ACTIVE",
+            created_at: new Date().toISOString()
+          });
+
+          // Create demo school document
+          await setDoc(doc(db, "schools", "demo_school"), {
+            name: "Sekolah Demo e-Supervisi",
+            address: "Jl. Pendidikan No. 123 (Demo)",
+            status: "ACTIVE",
+            header_text: "DINAS PENDIDIKAN\nSEKOLAH DEMO E-SUPERVISI",
+            created_at: new Date().toISOString()
+          });
+
           navigate("/");
         } catch (createErr: any) {
           console.error("Failed to auto-create demo account:", createErr);
