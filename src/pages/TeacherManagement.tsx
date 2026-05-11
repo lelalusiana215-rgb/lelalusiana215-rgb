@@ -18,6 +18,7 @@ export default function TeacherManagement({ user }: { user: User }) {
     teaching_class: "",
     rank_grade: "",
     subject: "",
+    semester: "GANJIL" as "GANJIL" | "GENAP",
     planned_schedule: {
       ganjil: { stage1: "", stage2: "", stage3: "", stage4: "" },
       genap: { stage1: "", stage2: "", stage3: "", stage4: "" }
@@ -68,7 +69,8 @@ export default function TeacherManagement({ user }: { user: User }) {
             rank_grade: formData.rank_grade,
             subject: formData.subject,
             email: formData.email,
-            planned_schedule: formData.planned_schedule
+            planned_schedule: formData.planned_schedule,
+            semester: formData.semester
           });
 
           // Also update existing supervisions for this teacher
@@ -105,6 +107,7 @@ export default function TeacherManagement({ user }: { user: User }) {
             teaching_class: formData.teaching_class || "",
             rank_grade: formData.rank_grade || "",
             subject: formData.subject || "",
+            semester: formData.semester,
             planned_schedule: formData.planned_schedule,
             status: "ACTIVE",
             created_at: serverTimestamp(),
@@ -114,8 +117,10 @@ export default function TeacherManagement({ user }: { user: User }) {
           const docRef = await addDoc(collection(db, "users"), teacherData);
           const teacherId = docRef.id;
 
-          // Create initial supervision if schedule provided (Ganjil Stage 1)
-          if (formData.planned_schedule.ganjil.stage1) {
+          // Create initial supervision based on selected semester
+          const currentSched = formData.semester === "GANJIL" ? formData.planned_schedule.ganjil : formData.planned_schedule.genap;
+          
+          if (currentSched.stage1) {
             await addDoc(collection(db, "supervisions"), {
               teacher_id: teacherId,
               teacher_name: formData.name,
@@ -125,11 +130,12 @@ export default function TeacherManagement({ user }: { user: User }) {
               principal_name: user.name,
               principal_nip: user.nip || "-",
               school_id: user.school_id,
-              date: formData.planned_schedule.ganjil.stage1,
-              stage1_date: formData.planned_schedule.ganjil.stage1,
-              stage2_date: formData.planned_schedule.ganjil.stage2,
-              stage3_date: formData.planned_schedule.ganjil.stage3,
-              stage4_date: formData.planned_schedule.ganjil.stage4,
+              semester: formData.semester,
+              date: currentSched.stage1,
+              stage1_date: currentSched.stage1,
+              stage2_date: currentSched.stage2,
+              stage3_date: currentSched.stage3,
+              stage4_date: currentSched.stage4,
               status: "BELUM",
               final_score: 0,
               created_at: serverTimestamp()
@@ -148,6 +154,7 @@ export default function TeacherManagement({ user }: { user: User }) {
       setEditingTeacher(null);
       setFormData({ 
         name: "", email: "", password: "", nip: "", teaching_class: "", rank_grade: "", subject: "",
+        semester: "GANJIL" as "GANJIL" | "GENAP",
         planned_schedule: { 
           ganjil: { stage1: "", stage2: "", stage3: "", stage4: "" },
           genap: { stage1: "", stage2: "", stage3: "", stage4: "" }
@@ -176,7 +183,8 @@ export default function TeacherManagement({ user }: { user: User }) {
       planned_schedule: teacher.planned_schedule || {
         ganjil: { stage1: "", stage2: "", stage3: "", stage4: "" },
         genap: { stage1: "", stage2: "", stage3: "", stage4: "" }
-      }
+      },
+      semester: teacher.semester || "GANJIL"
     });
     setActiveTab("profile");
     setIsModalOpen(true);
@@ -575,6 +583,26 @@ export default function TeacherManagement({ user }: { user: User }) {
                             placeholder="Contoh: III/a"
                           />
                         </div>
+                      </div>
+                      <div className="space-y-4 mt-4">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Semester Aktif</label>
+                        <div className="flex gap-4">
+                          <button 
+                            type="button"
+                            onClick={() => setFormData({ ...formData, semester: "GANJIL" })}
+                            className={`flex-1 py-3 rounded-xl border font-bold transition-all ${formData.semester === "GANJIL" ? "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-100" : "bg-zinc-50 text-zinc-400 border-zinc-200"}`}
+                          >
+                            Ganjil
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => setFormData({ ...formData, semester: "GENAP" })}
+                            className={`flex-1 py-3 rounded-xl border font-bold transition-all ${formData.semester === "GENAP" ? "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-100" : "bg-zinc-50 text-zinc-400 border-zinc-200"}`}
+                          >
+                            Genap
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-zinc-400 italic">* Supervisi akan didaftarkan otomatis untuk semester yang dipilih.</p>
                       </div>
                     </div>
                   </div>

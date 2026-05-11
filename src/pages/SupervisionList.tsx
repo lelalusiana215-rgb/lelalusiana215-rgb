@@ -20,7 +20,7 @@ export default function SupervisionList({ user }: { user: User }) {
     stage2_date: "",
     stage3_date: "",
     stage4_date: "",
-    semester: "ganjil" as "ganjil" | "genap"
+    semester: "GANJIL" as "GANJIL" | "GENAP"
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -70,9 +70,8 @@ export default function SupervisionList({ user }: { user: User }) {
     e.preventDefault();
     try {
       const teacher = teachers.find(t => t.id === newSupervision.teacher_id);
-      const { semester, ...supervisionData } = newSupervision;
       const docRef = await addDoc(collection(db, "supervisions"), {
-        ...supervisionData,
+        ...newSupervision,
         school_id: user.school_id,
         principal_id: user.id,
         principal_name: user.name,
@@ -200,7 +199,14 @@ export default function SupervisionList({ user }: { user: User }) {
                       {sup.teacher_name?.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-bold text-zinc-900 group-hover:text-emerald-600 transition-colors">{sup.teacher_name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-zinc-900 group-hover:text-emerald-600 transition-colors">{sup.teacher_name}</p>
+                        {sup.semester && (
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${sup.semester.toLowerCase() === 'ganjil' ? 'bg-indigo-50 text-indigo-500 border border-indigo-100' : 'bg-amber-50 text-amber-500 border border-amber-100'}`}>
+                            {sup.semester}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex flex-wrap gap-2 mt-1">
                         <p className="text-[10px] text-zinc-400 font-bold uppercase">{new Date(sup.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</p>
                         {sup.stage1_date && <span className="text-[9px] bg-zinc-50 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-100">T1: {new Date(sup.stage1_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>}
@@ -276,7 +282,7 @@ export default function SupervisionList({ user }: { user: User }) {
                       const teacherId = e.target.value;
                       const teacher = teachers.find(t => t.id === teacherId);
                       const semester = newSupervision.semester;
-                      const schedule = teacher?.planned_schedule?.[semester];
+                      const schedule = teacher?.planned_schedule?.[semester.toLowerCase()];
                       
                       setNewSupervision({ 
                         ...newSupervision, 
@@ -299,9 +305,9 @@ export default function SupervisionList({ user }: { user: User }) {
                   <select 
                     value={newSupervision.semester}
                     onChange={(e) => {
-                      const semester = e.target.value as "ganjil" | "genap";
+                      const semester = e.target.value as "GANJIL" | "GENAP";
                       const teacher = teachers.find(t => t.id === newSupervision.teacher_id);
-                      const schedule = teacher?.planned_schedule?.[semester];
+                      const schedule = teacher?.planned_schedule?.[semester.toLowerCase()];
                       
                       setNewSupervision({ 
                         ...newSupervision, 
@@ -315,8 +321,8 @@ export default function SupervisionList({ user }: { user: User }) {
                     }}
                     className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                   >
-                    <option value="ganjil">Ganjil</option>
-                    <option value="genap">Genap</option>
+                    <option value="GANJIL">Ganjil</option>
+                    <option value="GENAP">Genap</option>
                   </select>
                 </div>
               </div>

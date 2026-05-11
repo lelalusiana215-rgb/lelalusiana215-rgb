@@ -74,6 +74,7 @@ export interface Supervision {
   header_text?: string;
   logo_school?: string;
   logo_gov?: string;
+  semester?: 'GANJIL' | 'GENAP';
 }
 
 export interface InstrumentItem {

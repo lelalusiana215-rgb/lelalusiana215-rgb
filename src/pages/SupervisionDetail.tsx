@@ -388,7 +388,15 @@ export default function SupervisionDetail({ user }: { user: User }) {
     doc.text(`Nama Supervisor`, 20, lineY + 35);
     doc.text(`: ${supervision.principal_name}`, 60, lineY + 35);
     doc.text(`Tanggal`, 20, lineY + 40);
-    doc.text(`: ${new Date(supervision.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, 60, lineY + 40);
+    
+    // Choose date based on stage rule mapping
+    let stageDate = supervision.date;
+    if (stageNum === 1 || stageNum === 2) stageDate = supervision.stage1_date || supervision.date;
+    else if (stageNum === 3 || stageNum === 4) stageDate = supervision.stage2_date || supervision.date;
+    else if (stageNum === 5 || stageNum === 6) stageDate = supervision.stage3_date || supervision.date;
+    else if (stageNum === 7) stageDate = supervision.stage4_date || supervision.date;
+
+    doc.text(`: ${new Date(stageDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, 60, lineY + 40);
 
     // Table
     const isInterview = stageNum === 4 || stageNum === 6;
@@ -841,7 +849,19 @@ export default function SupervisionDetail({ user }: { user: User }) {
           new Paragraph({ children: [new TextRun({ text: `Nama Guru: ${supervision.teacher_name}`, bold: true })] }),
           new Paragraph({ children: [new TextRun({ text: `NIP: ${supervision.teacher_nip || "-"}`, bold: true })] }),
           new Paragraph({ children: [new TextRun({ text: `Nama Supervisor: ${supervision.principal_name}`, bold: true })] }),
-          new Paragraph({ children: [new TextRun({ text: `Tanggal: ${new Date(supervision.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, bold: true })] }),
+          new Paragraph({ 
+            children: [
+              new TextRun({ 
+                text: `Tanggal: ${new Date(
+                  (stageNum === 1 || stageNum === 2) ? (supervision.stage1_date || supervision.date) :
+                  (stageNum === 3 || stageNum === 4) ? (supervision.stage2_date || supervision.date) :
+                  (stageNum === 5 || stageNum === 6) ? (supervision.stage3_date || supervision.date) :
+                  (supervision.stage4_date || supervision.date)
+                ).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, 
+                bold: true 
+              })
+            ] 
+          }),
           new Paragraph({ text: "" }),
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
@@ -1431,10 +1451,10 @@ export default function SupervisionDetail({ user }: { user: User }) {
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-xl font-bold">Tahap 2: Telaah ATP</h3>
-                  {supervision.stage2_date && (
+                  {supervision.stage1_date && (
                     <p className="text-xs text-zinc-400 mt-1 flex items-center">
                       <Calendar size={12} className="mr-1" />
-                      Jadwal: {new Date(supervision.stage2_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      Jadwal (Tahap 1 Administrasi): {new Date(supervision.stage1_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   )}
                 </div>
@@ -1509,10 +1529,10 @@ export default function SupervisionDetail({ user }: { user: User }) {
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-xl font-bold">Tahap 3: Telaah Modul Ajar</h3>
-                  {supervision.stage3_date && (
+                  {supervision.stage2_date && (
                     <p className="text-xs text-zinc-400 mt-1 flex items-center">
                       <Calendar size={12} className="mr-1" />
-                      Jadwal: {new Date(supervision.stage3_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      Jadwal (Tahap 2 Perencanaan): {new Date(supervision.stage2_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   )}
                 </div>
@@ -1587,6 +1607,12 @@ export default function SupervisionDetail({ user }: { user: User }) {
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-xl font-bold">Tahap 4: Instrumen Percakapan Pra Observasi</h3>
+                  {supervision.stage2_date && (
+                    <p className="text-xs text-zinc-400 mt-1 flex items-center">
+                      <Calendar size={12} className="mr-1" />
+                      Jadwal (Tahap 2 Perencanaan): {new Date(supervision.stage2_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  )}
                   <p className="text-xs text-zinc-400 mt-1">Lakukan wawancara coaching sebelum observasi kelas.</p>
                 </div>
                 <div className="text-right flex flex-col items-end gap-2">
@@ -1653,10 +1679,10 @@ export default function SupervisionDetail({ user }: { user: User }) {
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-xl font-bold">Tahap 5: Supervisi Pelaksanaan</h3>
-                  {supervision.stage4_date && (
+                  {supervision.stage3_date && (
                     <p className="text-xs text-zinc-400 mt-1 flex items-center">
                       <Calendar size={12} className="mr-1" />
-                      Jadwal: {new Date(supervision.stage4_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      Jadwal (Tahap 3 Pelaksanaan): {new Date(supervision.stage3_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   )}
                   <div className="flex items-center space-x-4 mt-4">
@@ -1745,6 +1771,12 @@ export default function SupervisionDetail({ user }: { user: User }) {
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-xl font-bold">Tahap 6: Instrumen Supervisi Pasca Observasi</h3>
+                  {supervision.stage3_date && (
+                    <p className="text-xs text-zinc-400 mt-1 flex items-center">
+                      <Calendar size={12} className="mr-1" />
+                      Jadwal (Tahap 3 Pelaksanaan): {new Date(supervision.stage3_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  )}
                   <p className="text-xs text-zinc-400 mt-1">Lakukan wawancara coaching setelah observasi kelas.</p>
                 </div>
                 <div className="text-right flex flex-col items-end gap-2">
@@ -1812,10 +1844,10 @@ export default function SupervisionDetail({ user }: { user: User }) {
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-xl font-bold">Tahap 7: Refleksi & RTL</h3>
-                  {supervision.stage5_date && (
+                  {supervision.stage4_date && (
                     <p className="text-xs text-zinc-400 mt-1 flex items-center">
                       <Calendar size={12} className="mr-1" />
-                      Jadwal: {new Date(supervision.stage5_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      Jadwal (Tahap 4 Refleksi): {new Date(supervision.stage4_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   )}
                 </div>
