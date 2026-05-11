@@ -342,6 +342,37 @@ export default function Dashboard({ user }: { user: User }) {
         />
       </div>
 
+      {/* AI Setup Reminder (Only for Principal/Admin who hasn't set API key and isn't demo) */}
+      {(user.role === 'KEPALA_SEKOLAH' || user.role === 'ADMIN') && user.email !== 'demo@supervisi.com' && !user.api_key && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-purple-600 to-indigo-700 p-8 rounded-[32px] text-white shadow-xl relative overflow-hidden group"
+        >
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2 bg-white/20 w-fit px-3 py-1 rounded-full text-[10px] font-bold tracking-widest text-white mb-2">
+                <Sparkles size={12} />
+                <span>AI OPTIMIZATION READY</span>
+              </div>
+              <h3 className="text-2xl font-bold">Aktifkan Asisten AI Supervisi</h3>
+              <p className="text-white/70 text-sm max-w-lg">
+                Dapatkan rekomendasi otomatis dan analisis laporan yang lebih mendalam dengan menghubungkan Google Gemini API Key Anda. 
+                Gratis dan mudah dikonfigurasi.
+              </p>
+            </div>
+            <button 
+              onClick={() => navigate('/profil')}
+              className="bg-white text-purple-600 px-8 py-3 rounded-2xl font-bold hover:bg-purple-50 transition-all shadow-lg shadow-black/10 whitespace-nowrap"
+            >
+              Konfigurasi Sekarang
+            </button>
+          </div>
+          <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
+          <div className="absolute -left-10 -top-10 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Chart Section */}
         <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-black/5 shadow-sm min-h-[400px] flex flex-col">

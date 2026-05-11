@@ -546,140 +546,198 @@ export default function Profile({ user }: { user: User }) {
           </div>
         )}
 
-        {/* AI Configuration Section - Hidden for Demo Account */}
-        {user.email !== "demo@supervisi.com" && (
-          <div className="bg-white p-8 rounded-3xl border border-black/5 shadow-sm space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold flex items-center">
-                <Sparkles className="mr-2 text-purple-500" size={20} />
-                Konfigurasi AI (Gemini)
-              </h3>
-              <a 
-                href="https://aistudio.google.com/app/apikey" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-[10px] font-bold text-purple-600 hover:underline flex items-center"
-              >
-                Dapatkan API Key di Google AI Studio
-                <ArrowLeft size={10} className="ml-1 rotate-180" />
-              </a>
+      {/* AI Configuration Section - Hidden for Demo Account */}
+      {user.email !== "demo@supervisi.com" && (
+        <div className="bg-white p-8 rounded-3xl border border-black/5 shadow-sm space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="p-2 bg-purple-100 text-purple-600 rounded-xl">
+                <Sparkles size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">Pengaturan AI (Gemini)</h3>
+                <p className="text-xs text-zinc-500">Gunakan kecerdasan buatan untuk membantu analisis laporan Anda.</p>
+              </div>
             </div>
-            
-            <div className="p-6 bg-purple-50 rounded-2xl border border-purple-100 space-y-4">
-              <div className="flex flex-col space-y-2">
-                <p className="text-sm text-purple-900 leading-relaxed font-medium">
-                  Fitur AI membantu memberikan rekomendasi dan catatan otomatis yang konstruktif. 
-                  Anda dapat menggunakan API Key pribadi Anda jika API Key sistem telah mencapai limit.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold border ${systemApiKeyActive ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-zinc-100 text-zinc-500 border-zinc-200'}`}>
-                    {systemApiKeyActive ? 'SYSTEM KEY: AKTIF' : 'SYSTEM KEY: TIDAK AKTIF'}
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold border ${customApiKey || user.api_key ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-zinc-100 text-zinc-500 border-zinc-200'}`}>
-                    {(customApiKey || user.api_key) ? 'CUSTOM KEY: AKTIF' : 'CUSTOM KEY: TIDAK AKTIF'}
-                  </div>
+            <a 
+              href="https://aistudio.google.com/app/apikey" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="bg-purple-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-purple-700 transition-all flex items-center shadow-lg shadow-purple-100"
+            >
+              <Key size={14} className="mr-2" />
+              Dapatkan API Key Gratis
+            </a>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className={`p-6 rounded-2xl border transition-all ${customApiKey || user.api_key ? 'bg-emerald-50 border-emerald-100' : 'bg-zinc-50 border-zinc-100 opacity-60'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-2 rounded-lg ${customApiKey || user.api_key ? 'bg-emerald-500 text-white' : 'bg-zinc-400 text-white'}`}>
+                  <UserIcon size={16} />
                 </div>
-                {(!systemApiKeyActive && !customApiKey && !user.api_key) && (
-                  <p className="text-xs text-red-500 font-bold bg-white/50 p-2 rounded-lg border border-red-100 mt-2">
-                    ⚠️ AI tidak aktif. Silakan masukkan API Key Anda di bawah ini untuk mengaktifkan fitur rekomendasi otomatis.
-                  </p>
-                )}
-                {(systemApiKeyActive && !customApiKey && !user.api_key) && (
-                  <p className="text-xs text-emerald-600 italic mt-2">
-                    Aplikasi sedang menggunakan API Key sistem (shared). Anda dapat menambahkan API Key kustom Anda sendiri untuk kuota pribadi.
-                  </p>
+                <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${customApiKey || user.api_key ? 'bg-emerald-500 text-white' : 'bg-zinc-400 text-zinc-100'}`}>PRIBADI</span>
+              </div>
+              <p className="text-xs font-bold text-zinc-800">API Key Akun</p>
+              <p className="text-[10px] text-zinc-500 mt-1">Menggunakan kunci pribadi yang Anda simpan di akun ini.</p>
+              <div className="mt-4 flex items-center">
+                <div className={`w-2 h-2 rounded-full mr-2 ${(customApiKey || user.api_key) ? 'bg-emerald-500' : 'bg-zinc-300'}`}></div>
+                <span className="text-[10px] font-bold text-zinc-600">{(customApiKey || user.api_key) ? 'Teridentifikasi' : 'Belum Ada'}</span>
+              </div>
+            </div>
+
+            <div className={`p-6 rounded-2xl border transition-all ${systemApiKeyActive ? 'bg-blue-50 border-blue-100' : 'bg-zinc-50 border-zinc-100 opacity-60'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-2 rounded-lg ${systemApiKeyActive ? 'bg-blue-500 text-white' : 'bg-zinc-400 text-white'}`}>
+                  <ShieldCheck size={16} />
+                </div>
+                <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${systemApiKeyActive ? 'bg-blue-500 text-white' : 'bg-zinc-400 text-zinc-100'}`}>SISTEM</span>
+              </div>
+              <p className="text-xs font-bold text-zinc-800">API Key Bersama</p>
+              <p className="text-[10px] text-zinc-500 mt-1">Kuota bersama yang disediakan sistem (terbatas).</p>
+              <div className="mt-4 flex items-center">
+                <div className={`w-2 h-2 rounded-full mr-2 ${systemApiKeyActive ? 'bg-blue-500' : 'bg-zinc-300'}`}></div>
+                <span className="text-[10px] font-bold text-zinc-600">{systemApiKeyActive ? 'Aktif' : 'Tidak Aktif'}</span>
+              </div>
+            </div>
+
+            <div className={`p-6 rounded-2xl border transition-all ${(!systemApiKeyActive && !customApiKey && !user.api_key) ? 'bg-red-50 border-red-100' : 'bg-zinc-50 border-zinc-100'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-2 rounded-lg ${(!systemApiKeyActive && !customApiKey && !user.api_key) ? 'bg-red-500 text-white' : 'bg-zinc-400 text-white'}`}>
+                  <AlertCircle size={16} />
+                </div>
+                <span className="text-[9px] font-bold text-zinc-400 px-2 py-1">STRATEGI</span>
+              </div>
+              <p className="text-xs font-bold text-zinc-800">Status Prioritas</p>
+              <p className="text-[10px] text-zinc-500 mt-1">Sistem akan memprioritaskan Kunci Pribadi Anda.</p>
+              <div className="mt-4 flex items-center">
+                {(!systemApiKeyActive && !customApiKey && !user.api_key) ? (
+                  <>
+                    <XCircle size={14} className="text-red-500 mr-2" />
+                    <span className="text-[10px] font-bold text-red-600">Perlu Tindakan</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={14} className="text-emerald-500 mr-2" />
+                    <span className="text-[10px] font-bold text-emerald-600">AI Siap Digunakan</span>
+                  </>
                 )}
               </div>
-              
-              <div className="flex flex-wrap gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      if (typeof (window as any).aistudio !== 'undefined' && (window as any).aistudio.openSelectKey) {
-                        await (window as any).aistudio.openSelectKey();
-                        setMessage({ type: "success", text: "Dialog pemilihan API Key berhasil dibuka." });
-                      } else {
-                        setShowApiKeyInput(true);
-                      }
-                    } catch (err) {
-                      console.error("Error opening API Key dialog:", err);
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-4 border-t border-zinc-100">
+            <h4 className="text-sm font-bold text-zinc-900">Konfigurasi Cepat</h4>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    if (typeof (window as any).aistudio !== 'undefined' && (window as any).aistudio.openSelectKey) {
+                      await (window as any).aistudio.openSelectKey();
+                    } else {
                       setShowApiKeyInput(true);
                     }
-                  }}
-                  className="flex items-center space-x-2 bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 transition-all font-bold shadow-lg shadow-purple-200"
-                >
-                  <Key size={18} />
-                  <span>Pilih API Key (Akun Google)</span>
-                </button>
+                  } catch (err) {
+                    setShowApiKeyInput(true);
+                  }
+                }}
+                className="flex items-center space-x-2 bg-zinc-900 text-white px-6 py-3 rounded-xl hover:bg-zinc-800 transition-all font-bold"
+              >
+                <Key size={18} />
+                <span>Pilih dari Akun Google</span>
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-                  className="flex items-center space-x-2 bg-white text-purple-600 px-6 py-3 rounded-xl border border-purple-200 hover:bg-purple-50 transition-all font-bold"
-                >
-                  <PenTool size={18} />
-                  <span>Input Manual</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+                className="flex items-center space-x-2 bg-white text-zinc-900 px-6 py-3 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all font-bold"
+              >
+                <PenTool size={18} />
+                <span>Masukkan Manual</span>
+              </button>
             </div>
-            
+
             {showApiKeyInput && (
               <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-4 p-6 bg-zinc-50 rounded-2xl border border-zinc-200"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-6 bg-zinc-950 rounded-2xl border border-white/5 space-y-4"
               >
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">API Key Gemini Kustom</label>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Manual API Key input</label>
+                    <p className="text-[10px] text-zinc-500">Key akan dienkripsi dan disimpan di database akun Anda.</p>
+                  </div>
+                  <button onClick={() => setShowApiKeyInput(false)} className="text-zinc-500 hover:text-white">
+                    <ArrowLeft size={16} />
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
                   <input
                     type="password"
                     value={customApiKey}
                     onChange={(e) => setCustomApiKey(e.target.value)}
-                    placeholder="Masukkan API Key Anda di sini..."
-                    className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                    placeholder="AIzaSy..."
+                    className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 text-white transition-all"
                   />
-                  <p className="text-[10px] text-zinc-400 italic">API Key ini akan disimpan di akun Anda dan dapat diakses di perangkat lain.</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
+                  <button 
                     type="button"
-                    disabled={testingApiKey}
                     onClick={handleCheckApiKey}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                      apiKeyStatus === 'valid' 
-                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
-                        : apiKeyStatus === 'invalid'
-                        ? 'bg-red-100 text-red-700 border border-red-200'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    }`}
+                    disabled={testingApiKey}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-all flex items-center justify-center min-w-[120px]"
                   >
-                    {testingApiKey ? <Loader2 size={16} className="animate-spin" /> : 
-                     apiKeyStatus === 'valid' ? <CheckCircle2 size={16} /> : 
-                     apiKeyStatus === 'invalid' ? <XCircle size={16} /> : <Key size={16} />}
-                    <span>{testingApiKey ? 'Mengecek...' : apiKeyStatus === 'valid' ? 'Aktif' : apiKeyStatus === 'invalid' ? 'Tidak Aktif' : 'Cek Keaktifan'}</span>
+                    {testingApiKey ? <Loader2 size={18} className="animate-spin" /> : <span>Cek Validasi</span>}
                   </button>
+                </div>
 
-                  <button
+                {apiKeyStatus === 'valid' && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center text-emerald-400 text-xs font-bold">
+                    <CheckCircle2 size={14} className="mr-1" /> API Key Valid! Klik Simpan di bawah untuk menerapkan.
+                  </motion.div>
+                )}
+                {apiKeyStatus === 'invalid' && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center text-red-400 text-xs font-bold">
+                    <XCircle size={14} className="mr-1" /> API Key Tidak Valid. Periksa kembali karakter kuncinya.
+                  </motion.div>
+                )}
+
+                <div className="flex justify-end pt-2 border-t border-white/5 gap-3">
+                   <button
                     type="button"
-                    disabled={saving}
-                    onClick={handleSaveApiKey}
-                    className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all disabled:opacity-50"
+                    onClick={() => { setCustomApiKey(""); setApiKeyStatus('none'); }}
+                    className="text-white/40 hover:text-white text-[10px] font-bold uppercase tracking-widest"
                   >
-                    {saving ? 'Menyimpan...' : 'Simpan ke Akun'}
+                    Hapus Input
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowApiKeyInput(false)}
-                    className="px-4 py-2 bg-white text-zinc-600 border border-zinc-200 rounded-xl text-sm font-bold hover:bg-zinc-50 transition-all"
+                    disabled={saving || !customApiKey}
+                    onClick={handleSaveApiKey}
+                    className="bg-white text-black px-6 py-2 rounded-xl text-xs font-bold hover:bg-zinc-200 transition-all disabled:opacity-50"
                   >
-                    Batal
+                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
                   </button>
                 </div>
               </motion.div>
             )}
           </div>
-        )}
+
+          <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+             <h5 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 flex items-center">
+              <AlertCircle size={12} className="mr-1" /> Cara Menggunakan API Key Sendiri:
+             </h5>
+             <ol className="text-[10px] text-zinc-500 space-y-1 ml-4 list-decimal">
+               <li>Buka Google AI Studio melalui tombol biru di atas.</li>
+               <li>Buat API Key baru di sana (pilih "Create API Key").</li>
+               <li>Salin (Copy) kode yang muncul (biasanya diawali "AIza").</li>
+               <li>Masukkan kode tersebut ke input "Masukkan Manual" di halaman ini.</li>
+               <li>Klik "Simpan Perubahan" agar dapat digunakan di seluruh fitur e-Supervisi360.</li>
+             </ol>
+          </div>
+        </div>
+      )}
 
         <div className="flex justify-end">
           <button 
