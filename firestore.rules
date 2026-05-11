@@ -134,7 +134,7 @@ service cloud.firestore {
       );
 
       allow delete: if isAuthenticated() && (
-        (isPrincipal() && resource.data.role == 'GURU' && resource.data.school_id == getUserData().school_id) ||
+        (isPrincipal() && resource.data.role == 'GURU' && resource.data.school_id == getSchoolId()) ||
         isAdmin()
       );
     }
@@ -174,7 +174,7 @@ service cloud.firestore {
       );
       
       allow delete: if isAuthenticated() && (
-        (isPrincipal() && resource.data.school_id == getUserData().school_id) ||
+        (isPrincipal() && resource.data.school_id == getSchoolId()) ||
         isAdmin()
       );
     }
@@ -190,7 +190,7 @@ service cloud.firestore {
     }
 
     match /teacher_credentials/{teacherId} {
-      allow read, write: if isAdmin() || (isPrincipal() && getUserData().school_id == get(/databases/$(database)/documents/users/$(teacherId)).data.school_id);
+      allow read, write: if isAdmin() || (isPrincipal() && getSchoolId() == get(/databases/$(database)/documents/users/$(teacherId)).data.school_id);
     }
 
     // Default deny
