@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { User } from "../types";
-import { ShieldCheck, School, MapPin, FileText, Save, User as UserIcon, Sparkles, Key, ArrowLeft, PenTool, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { ShieldCheck, School, MapPin, FileText, Save, User as UserIcon, Sparkles, Key, ArrowLeft, PenTool, Clock, CheckCircle2, XCircle, Loader2, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { db, auth } from "../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
