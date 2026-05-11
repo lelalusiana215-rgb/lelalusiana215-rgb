@@ -82,71 +82,61 @@ export default function Profile({ user }: { user: User }) {
   });
 
   useEffect(() => {
-    fetchProfile();
-    checkSystemApiKey();
-  }, [user.id]);
-
-  useEffect(() => {
-    if (user.api_key) {
-      setCustomApiKey(user.api_key);
-    }
-  }, [user.api_key]);
-
-  const checkSystemApiKey = async () => {
-    try {
-      // Check Firestore config
-      const configSnap = await getDoc(doc(db, "config", "gemini"));
-      const hasFirestoreKey = configSnap.exists() && !!configSnap.data().apiKey;
-      
-      // Check process.env (platform key)
-      const hasEnvKey = !!(typeof process !== 'undefined' && process.env && (process.env as any).GEMINI_API_KEY);
-      
-      setSystemApiKeyActive(hasFirestoreKey || hasEnvKey);
-    } catch (err) {
-      console.error("Error checking system API key:", err);
-      setSystemApiKeyActive(false);
-    }
-  };
-
-  const fetchProfile = async () => {
-    if (!user.id) return;
-    try {
-      const userDoc = await getDoc(doc(db, "users", user.id));
-      const userData = userDoc.exists() ? userDoc.data() : null;
-      
-      let schoolData: any = null;
-      if (user.school_id) {
-        const schoolDoc = await getDoc(doc(db, "schools", user.school_id));
-        if (schoolDoc.exists()) {
-          schoolData = schoolDoc.data();
+    const fetchProfileData = async () => {
+      if (!user.id) return;
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.id));
+        const userData = userDoc.exists() ? userDoc.data() : null;
+        
+        let schoolData: any = null;
+        if (user.school_id) {
+          const schoolDoc = await getDoc(doc(db, "schools", user.school_id));
+          if (schoolDoc.exists()) {
+            schoolData = schoolDoc.data();
+          }
         }
-      }
-      
-      if (userData) {
-        setFormData({
-          name: userData.name || "",
-          nip: userData.nip || "",
-          school_name: schoolData?.name || "",
-          school_address: schoolData?.address || "",
-          header_text: schoolData?.header_text || "",
-          logo_school: schoolData?.logo_school || "",
-          logo_gov: schoolData?.logo_gov || "",
-          academic_year: schoolData?.academic_year || `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`,
-          teaching_class: userData.teaching_class || "",
-          rank_grade: userData.rank_grade || "",
-          subject: userData.subject || ""
-        });
+        
+        if (userData) {
+          setFormData({
+            name: userData.name || "",
+            nip: userData.nip || "",
+            school_name: schoolData?.name || "",
+            school_address: schoolData?.address || "",
+            header_text: schoolData?.header_text || "",
+            logo_school: schoolData?.logo_school || "",
+            logo_gov: schoolData?.logo_gov || "",
+            academic_year: schoolData?.academic_year || `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`,
+            teaching_class: userData.teaching_class || "",
+            rank_grade: userData.rank_grade || "",
+            subject: userData.subject || ""
+          });
 
-        if (userData.api_key) {
-          setCustomApiKey(userData.api_key);
+          if (userData.api_key) {
+            setCustomApiKey(userData.api_key);
+          }
         }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    const checkSystemApiKeyStatus = async () => {
+      try {
+        const configSnap = await getDoc(doc(db, "config", "gemini"));
+        const hasFirestoreKey = configSnap.exists() && !!configSnap.data().apiKey;
+        const hasEnvKey = !!(typeof process !== 'undefined' && process.env && (process.env as any).GEMINI_API_KEY);
+        setSystemApiKeyActive(hasFirestoreKey || hasEnvKey);
+      } catch (err) {
+        console.error("Error checking system API key:", err);
+        setSystemApiKeyActive(false);
+      }
+    };
+
+    fetchProfileData();
+    checkSystemApiKeyStatus();
+  }, [user.id, user.school_id, user.role]);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'school' | 'gov') => {
     const file = e.target.files?.[0];

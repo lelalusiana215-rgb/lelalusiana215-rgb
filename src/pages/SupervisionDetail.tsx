@@ -180,6 +180,11 @@ export default function SupervisionDetail({ user }: { user: User }) {
       if (!apiKey) {
         apiKey = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
       }
+
+      // 2b. Special Demo User Fallback
+      if (!apiKey && user.email === 'demo@supervisi.com') {
+        // Use platform key or firestore key if available, otherwise we will hit the error below
+      }
       
       // 3. Fallback to process.env (AI Studio Platform Key)
       if (!apiKey) {

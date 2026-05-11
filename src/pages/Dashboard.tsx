@@ -72,22 +72,25 @@ export default function Dashboard({ user }: { user: User }) {
       };
       seedDemoData();
     }
-  }, [user.email]);
+  }, [user.email, user.id, user.name]);
 
   useEffect(() => {
     if (!user.id) return;
+
+    let unsubSchools: (() => void) | null = null;
+    let unsubUsers: (() => void) | null = null;
+    let unsubSups: (() => void) | null = null;
 
     if (user.role === 'ADMIN') {
       const schoolsRef = collection(db, "schools");
       const usersRef = collection(db, "users");
 
-      const unsubSchools = onSnapshot(schoolsRef, (snapshot) => {
+      unsubSchools = onSnapshot(schoolsRef, (snapshot) => {
         const schools = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const active = schools.filter((s: any) => s.status === 'ACTIVE').length;
         const pending = schools.filter((s: any) => s.status === 'PENDING').length;
         
         setAdminStats(prev => ({ ...prev, totalSchools: schools.length, activeSchools: active, pendingSchools: pending }));
-        // Sort by created_at desc if exists
         const sorted = [...schools].sort((a: any, b: any) => {
           const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
           const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -96,7 +99,7 @@ export default function Dashboard({ user }: { user: User }) {
         setRegisteredSchools(sorted.slice(0, 10));
       });
 
-      const unsubUsers = onSnapshot(usersRef, (snapshot) => {
+      unsubUsers = onSnapshot(usersRef, (snapshot) => {
         const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setAdminStats(prev => ({ ...prev, totalUsers: snapshot.size }));
         const sortedUsers = [...users].sort((a: any, b: any) => {
@@ -108,51 +111,50 @@ export default function Dashboard({ user }: { user: User }) {
       });
       
       setLoading(false);
-      return () => {
-        unsubSchools();
-        unsubUsers();
-      };
-    }
-
-    // Query for supervisions related to this user
-    const supervisionsRef = collection(db, "supervisions");
-    let q;
-    
-    if (user.role === 'KEPALA_SEKOLAH') {
-      q = query(
-        supervisionsRef,
-        where("school_id", "==", user.school_id)
-      );
     } else {
-      q = query(
-        supervisionsRef,
-        where("teacher_id", "==", user.id)
-      );
+      // Query for supervisions related to this user
+      const supervisionsRef = collection(db, "supervisions");
+      let q;
+      
+      if (user.role === 'KEPALA_SEKOLAH') {
+        q = query(
+          supervisionsRef,
+          where("school_id", "==", user.school_id)
+        );
+      } else {
+        q = query(
+          supervisionsRef,
+          where("teacher_id", "==", user.id)
+        );
+      }
+
+      unsubSups = onSnapshot(q, (snapshot) => {
+        const sups = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const total = sups.length;
+        const completed = sups.filter((s: any) => s.status === "SELESAI").length;
+        const ongoing = sups.filter((s: any) => s.status === "PROSES").length;
+
+        setStats({ total, completed, ongoing });
+
+        const sortedAgenda = [...sups]
+          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 5);
+        
+        setAgenda(sortedAgenda);
+        setLoading(false);
+      }, (err) => {
+        console.error("Error fetching dashboard data:", err);
+        setLoading(false);
+      });
     }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const sups = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      const total = sups.length;
-      const completed = sups.filter((s: any) => s.status === "SELESAI").length;
-      const ongoing = sups.filter((s: any) => s.status === "PROSES").length;
-
-      setStats({ total, completed, ongoing });
-
-      // Sort for agenda (upcoming or recent)
-      const sortedAgenda = [...sups]
-        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 5);
-      
-      setAgenda(sortedAgenda);
-      setLoading(false);
-    }, (err) => {
-      console.error("Error fetching dashboard data:", err);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user.id, user.school_id]);
+    return () => {
+      if (unsubSchools) unsubSchools();
+      if (unsubUsers) unsubUsers();
+      if (unsubSups) unsubSups();
+    };
+  }, [user.id, user.school_id, user.role]);
 
   const chartData = [
     { name: "Selesai", value: stats.completed, color: "#10b981" },

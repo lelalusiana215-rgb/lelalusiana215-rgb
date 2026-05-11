@@ -121,8 +121,8 @@ export default function Login() {
       
       if (demoSnap.exists()) {
         const data = demoSnap.data();
-        if (data.count >= 50) {
-          setError("Batas penggunaan akun demo telah tercapai. Silakan hubungi admin atau beli lisensi penuh untuk akses tanpa batas.");
+        if (data.count >= 1000) {
+          setError("Batas penggunaan akun demo telah tercapai. Silakan hubungi admin.");
           setLoading(false);
           return;
         }

@@ -191,32 +191,33 @@ export default function TeacherManagement({ user }: { user: User }) {
     
     setMessage({ type: "", text: "" });
     try {
-      // 1. Delete credentials
+      // 1. Delete credentials using UID (teacherToDelete is the UID)
       try {
         await deleteDoc(doc(db, "teacher_credentials", teacherToDelete));
       } catch (e) {
-        console.log("No credentials to delete or permission denied");
+        console.log("Teacher credentials not found or permission denied");
       }
 
       // 2. Delete all supervisions for this teacher
       const supervisionsRef = collection(db, "supervisions");
-      const q = query(
+      const qSups = query(
         supervisionsRef, 
-        where("school_id", "==", user.school_id) // Query by school_id only to avoid composite index error
+        where("teacher_id", "==", teacherToDelete)
       );
-      const querySnapshot = await getDocs(q);
       
-      if (!querySnapshot.empty) {
-        const deletePromises: Promise<void>[] = [];
-        querySnapshot.forEach((docSnap) => {
-          if (docSnap.data().teacher_id === teacherToDelete) {
-            deletePromises.push(deleteDoc(doc(db, "supervisions", docSnap.id)));
-          }
-        });
-        
-        if (deletePromises.length > 0) {
-          await Promise.all(deletePromises);
-        }
+      try {
+        const supSnapshot = await getDocs(qSups);
+        const deletePromises = supSnapshot.docs.map(docSnap => deleteDoc(doc(db, "supervisions", docSnap.id)));
+        await Promise.all(deletePromises);
+      } catch (supErr) {
+        console.warn("Could not delete some supervisions, possibly index required. Falling back to school_id filter.");
+        // Fallback to school_id search if complex index is missing
+        const qSchool = query(supervisionsRef, where("school_id", "==", user.school_id));
+        const schoolSnapshot = await getDocs(qSchool);
+        const batchSups = schoolSnapshot.docs
+          .filter(d => d.data().teacher_id === teacherToDelete)
+          .map(d => deleteDoc(doc(db, "supervisions", d.id)));
+        await Promise.all(batchSups);
       }
 
       // 3. Delete user profile from Firestore
@@ -228,14 +229,13 @@ export default function TeacherManagement({ user }: { user: User }) {
           method: "DELETE",
         });
       } catch (e) {
-        console.error("Error deleting teacher from Auth:", e);
-        // We continue even if Auth deletion fails, as the profile is already gone
+        console.error("Auth deletion API failed:", e);
       }
       
-      setMessage({ type: "success", text: "Guru dan data supervisi terkait berhasil dihapus." });
-    } catch (err) {
-      console.error("Error deleting teacher or supervisions:", err);
-      setMessage({ type: "error", text: "Gagal menghapus guru atau data supervisi. Pastikan Anda memiliki izin." });
+      setMessage({ type: "success", text: "Guru dan seluruh data terkait berhasil dihapus." });
+    } catch (err: any) {
+      console.error("Final deletion error:", err);
+      setMessage({ type: "error", text: "Gagal menghapus data: " + (err.message || "Akses ditolak.") });
     } finally {
       setTeacherToDelete(null);
     }

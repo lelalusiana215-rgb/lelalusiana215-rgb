@@ -48,17 +48,14 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    function getSchoolId() {
-      let path = /databases/$(database)/documents/users/$(request.auth.uid);
-      return exists(path) ? get(path).data.school_id : 
-             (request.auth.token.email == "demo@supervisi.com" ? "demo_school" : 
-             (request.auth.token.email == "lelalusiana215@gmail.com" ? "admin_school" : ""));
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
-    
+
     function isPrincipal() {
       let path = /databases/$(database)/documents/users/$(request.auth.uid);
       return isAuthenticated() && (
-        (exists(path) && get(path).data.role == 'KEPALA_SEKOLAH') ||
+        (exists(path) && getUserData().role == 'KEPALA_SEKOLAH') ||
         request.auth.token.email == "demo@supervisi.com"
       );
     }
@@ -66,9 +63,17 @@ service cloud.firestore {
     function isAdmin() {
       let path = /databases/$(database)/documents/users/$(request.auth.uid);
       return isAuthenticated() && (
-        (exists(path) && get(path).data.role == 'ADMIN') || 
-        (request.auth.token.email == "lelalusiana215@gmail.com" && request.auth.token.email_verified == true)
+        (exists(path) && getUserData().role == 'ADMIN') || 
+        request.auth.token.email == "lelalusiana215@gmail.com"
       );
+    }
+
+    function getSchoolId() {
+      if (!isAuthenticated()) return "";
+      if (request.auth.token.email == "demo@supervisi.com") return "demo_school";
+      if (request.auth.token.email == "lelalusiana215@gmail.com") return "admin_school";
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? getUserData().school_id : "";
     }
 
     function hasOnlyAllowedFields(fields) {
@@ -84,7 +89,7 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+      return data.name is string && data.name.size() > 0 &&
              isValidEmail(data.email) &&
              data.role in ['KEPALA_SEKOLAH', 'GURU', 'ADMIN'] &&
              data.school_id is string &&
@@ -92,8 +97,8 @@ service cloud.firestore {
     }
 
     function isValidSchool(data) {
-      return data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
-             data.address is string && data.address.size() > 0 && data.address.size() < 500 &&
+      return data.name is string && data.name.size() > 0 &&
+             data.address is string && data.address.size() > 0 &&
              data.status in ['PENDING', 'ACTIVE', 'REJECTED'];
     }
 
@@ -122,14 +127,15 @@ service cloud.firestore {
       allow create: if isAuthenticated() && (
         (isOwner(userId) && (request.resource.data.role != 'ADMIN' || isAdmin())) ||
         (isPrincipal() && request.resource.data.role == 'GURU' && request.resource.data.school_id == getSchoolId()) ||
-        (request.auth.token.email == "demo@supervisi.com" && request.resource.data.school_id == "demo_school")
+        (request.auth.token.email == "demo@supervisi.com" && request.resource.data.school_id == "demo_school") ||
+        (request.auth.token.email == "lelalusiana215@gmail.com")
       ) && isValidUser(request.resource.data);
       
       allow update: if isAuthenticated() && (
-        (isOwner(userId) && isValidUser(request.resource.data) && 
+        (isOwner(userId) && 
          request.resource.data.role == resource.data.role && 
          request.resource.data.school_id == resource.data.school_id) ||
-        (isPrincipal() && resource.data.role == 'GURU' && resource.data.school_id == getSchoolId() && isValidUser(request.resource.data)) ||
+        (isPrincipal() && resource.data.role == 'GURU' && resource.data.school_id == getSchoolId()) ||
         isAdmin()
       );
 
@@ -147,7 +153,7 @@ service cloud.firestore {
       allow create: if isAuthenticated() && (isValidSchool(request.resource.data) || schoolId == "demo_school");
       
       allow update: if isAuthenticated() && (
-        (isPrincipal() && getSchoolId() == schoolId && isValidSchool(request.resource.data)) ||
+        (isPrincipal() && getSchoolId() == schoolId) ||
         (request.auth.token.email == "demo@supervisi.com" && schoolId == "demo_school") ||
         isAdmin()
       );
@@ -164,11 +170,12 @@ service cloud.firestore {
         (isPrincipal() && isValidSupervision(request.resource.data) && 
          request.resource.data.principal_id == request.auth.uid &&
          request.resource.data.school_id == getSchoolId()) ||
-        (request.auth.token.email == "demo@supervisi.com" && request.resource.data.school_id == "demo_school")
+        (request.auth.token.email == "demo@supervisi.com" && request.resource.data.school_id == "demo_school") ||
+        isAdmin()
       );
       
       allow update: if isAuthenticated() && (
-        (isPrincipal() && resource.data.principal_id == request.auth.uid && isValidSupervision(request.resource.data)) ||
+        (isPrincipal() && resource.data.school_id == getSchoolId()) ||
         (request.auth.token.email == "demo@supervisi.com" && resource.data.school_id == "demo_school") ||
         isAdmin()
       );

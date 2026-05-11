@@ -206,13 +206,13 @@ export default function App() {
     let unsubscribeUser: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Unsubscribe from previous user listener if it exists
       if (unsubscribeUser) {
         unsubscribeUser();
         unsubscribeUser = null;
       }
 
       if (firebaseUser) {
-        // Listen to current user document for real-time updates
         const userRef = doc(db, "users", firebaseUser.uid);
         unsubscribeUser = onSnapshot(userRef, (docSnap) => {
           if (docSnap.exists()) {
@@ -249,9 +249,9 @@ export default function App() {
                 id: firebaseUser.uid, 
                 email: firebaseUser.email || "", 
                 name: firebaseUser.displayName || "User",
-                role: "KEPALA_SEKOLAH",
-                school_id: "",
-                status: "UNREGISTERED" as any 
+                role: "GURU", 
+                status: "PENDING",
+                school_id: ""
               } as User);
             }
           }
