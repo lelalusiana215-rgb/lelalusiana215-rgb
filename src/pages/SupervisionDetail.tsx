@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, Save, Printer, FileText, 
   CheckCircle2, AlertCircle, Clock, Play, Pause, RotateCcw,
   Download, Award, MessageSquare, PenTool, Calendar, Sparkles,
-  HelpCircle, X
+  HelpCircle, X, Send
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -163,7 +163,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
 
   const generateAINotes = async () => {
     try {
-      if ((window as any).aistudio && !(await (window as any).aistudio.hasSelectedApiKey())) {
+      if ((window as any).aistudio && (window as any).aistudio.hasSelectedApiKey && !(await (window as any).aistudio.hasSelectedApiKey())) {
         await (window as any).aistudio.openSelectKey();
       }
     } catch (err) {
@@ -173,21 +173,33 @@ export default function SupervisionDetail({ user }: { user: User }) {
     setIsGenerating(true);
     setMessage(null);
     try {
-      // Fetch custom API key from Firestore config
-      let apiKey = (typeof process !== 'undefined' && process.env ? (process.env as any).GEMINI_API_KEY : null);
+      // 1. Check current user object (Loaded from Firestore in App.tsx)
+      let apiKey = user.api_key;
       
-      try {
-        const { getDoc, doc } = await import("firebase/firestore");
-        const configSnap = await getDoc(doc(db, "config", "gemini"));
-        if (configSnap.exists() && configSnap.data().apiKey) {
-          apiKey = configSnap.data().apiKey;
+      // 2. Fallback to LocalStorage (Legacy/Device-specific)
+      if (!apiKey) {
+        apiKey = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
+      }
+      
+      // 3. Fallback to process.env (AI Studio Platform Key)
+      if (!apiKey) {
+        apiKey = (typeof process !== 'undefined' && process.env ? (process.env as any).GEMINI_API_KEY : null);
+      }
+      
+      // 4. Fallback to Firestore config (Global System Key)
+      if (!apiKey) {
+        try {
+          const configSnap = await getDoc(doc(db, "config", "gemini"));
+          if (configSnap.exists() && configSnap.data().apiKey) {
+            apiKey = configSnap.data().apiKey;
+          }
+        } catch (configErr) {
+          console.error("Error fetching custom API key from Firestore:", configErr);
         }
-      } catch (configErr) {
-        console.error("Error fetching custom API key:", configErr);
       }
       
       if (!apiKey) {
-        throw new Error("API Key tidak ditemukan.");
+        throw new Error("API Key tidak ditemukan. Silakan konfigurasi API Key di profil Anda atau Hubungi Admin.");
       }
       const ai = new GoogleGenAI({ apiKey });
       
@@ -584,6 +596,34 @@ export default function SupervisionDetail({ user }: { user: User }) {
     doc.text(`TAHUN PELAJARAN ${year}/${year + 1}`, 105, 250, { align: "center" });
     
     doc.save(`Cover_Supervisi_${supervision.teacher_name}.pdf`);
+  };
+
+  const handleSendEmail = () => {
+    if (!supervision || !supervision.teacher_email) {
+      setMessage({ type: 'error', text: 'Email guru tidak ditemukan. Silakan isi email guru di Data Guru.' });
+      return;
+    }
+
+    const teacherName = supervision.teacher_name || "Guru";
+    const status = supervision.status === 'SELESAI' ? 'Telah Selesai' : 'Sedang Berlangsung';
+    const score = supervision.final_score ? supervision.final_score.toFixed(1) + '%' : '-';
+    
+    // Construct email subject and body
+    const subject = encodeURIComponent(`Hasil Supervisi Akademik - ${teacherName}`);
+    const body = encodeURIComponent(
+      `Yth. Bapak/Ibu ${teacherName},\n\n` +
+      `Berikut adalah informasi hasil supervisi akademik Anda:\n\n` +
+      `- Status: ${status}\n` +
+      `- Skor Akhir: ${score}\n` +
+      `- Catatan/Rekomendasi Utama: ${supervision.recommendations || "Terlampir dalam laporan"}\n\n` +
+      `Laporan lengkap dalam format PDF dapat diunduh melalui aplikasi e-Supervisi360.\n\n` +
+      `Demikian disampaikan, tetap semangat dalam mengabdi.\n\n` +
+      `Salam,\n` +
+      `${supervision.principal_name}\n` +
+      `${school?.name || supervision.school_name || "Kepala Sekolah"}`
+    );
+
+    window.location.href = `mailto:${supervision.teacher_email}?subject=${subject}&body=${body}`;
   };
 
   const generateCoverWord = async () => {
@@ -1227,6 +1267,14 @@ export default function SupervisionDetail({ user }: { user: User }) {
               Word
             </button>
           </div>
+          <button 
+            onClick={handleSendEmail}
+            className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 text-white border border-emerald-500 rounded-xl shadow-lg hover:bg-emerald-700 transition-all text-sm font-bold"
+            title="Kirim Laporan ke Email Guru"
+          >
+            <Send size={18} />
+            <span className="hidden sm:inline">Kirim Email</span>
+          </button>
           <button 
             onClick={() => handleSaveStage()}
             disabled={saving}

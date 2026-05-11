@@ -28,6 +28,7 @@ export interface User {
   rank_grade?: string;
   subject?: string;
   planned_schedule?: PlannedSchedule;
+  api_key?: string;
 }
 
 export interface School {
@@ -47,6 +48,7 @@ export interface Supervision {
   principal_id: string;
   teacher_name?: string;
   teacher_nip?: string;
+  teacher_email?: string;
   principal_name?: string;
   principal_nip?: string;
   date: string;

@@ -14,7 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import SupervisionList from "./pages/SupervisionList";
 import SupervisionDetail from "./pages/SupervisionDetail";
 import TeacherManagement from "./pages/TeacherManagement";
-import PrincipalProfile from "./pages/PrincipalProfile";
+import Profile from "./pages/Profile";
 import AdminPanel from "./pages/AdminPanel";
 import ProgramSupervisi from "./pages/ProgramSupervisi";
 import SupervisionSchedule from "./pages/SupervisionSchedule";
@@ -47,7 +47,7 @@ function Layout({ children, user, onLogout }: { children: React.ReactNode, user:
         <nav className="flex-1 py-6 px-4 space-y-2">
           <SidebarItem icon={<LayoutDashboard size={20} />} label="Dashboard" to="/dashboard" active={location.pathname === '/dashboard'} collapsed={!isSidebarOpen} />
           <SidebarItem icon={<ClipboardCheck size={20} />} label="Supervisi" to="/supervisi" active={location.pathname.startsWith('/supervisi')} collapsed={!isSidebarOpen} />
-          {user.role === 'ADMIN' && (
+          {user.email === 'lelalusiana215@gmail.com' && (
             <SidebarItem icon={<ShieldCheck size={20} />} label="Admin Panel" to="/admin" active={location.pathname === '/admin'} collapsed={!isSidebarOpen} />
           )}
           {user.role === 'KEPALA_SEKOLAH' && (
@@ -55,6 +55,9 @@ function Layout({ children, user, onLogout }: { children: React.ReactNode, user:
               <SidebarItem icon={<Users size={20} />} label="Data Guru" to="/guru" active={location.pathname === '/guru'} collapsed={!isSidebarOpen} />
               <SidebarItem icon={<FileText size={20} />} label="Data Sekolah" to="/profil" active={location.pathname === '/profil'} collapsed={!isSidebarOpen} />
             </>
+          )}
+          {user.role === 'GURU' && (
+            <SidebarItem icon={<FileText size={20} />} label="Profil Saya" to="/profil" active={location.pathname === '/profil'} collapsed={!isSidebarOpen} />
           )}
         </nav>
 
@@ -399,9 +402,9 @@ export default function App() {
                   <Route path="/dashboard" element={<Dashboard user={user} />} />
                   <Route path="/supervisi" element={<SupervisionList user={user} />} />
                   <Route path="/supervisi/:id" element={<SupervisionDetail user={user} />} />
-                  <Route path="/admin" element={user.role === 'ADMIN' ? <AdminPanel user={user} /> : <Navigate to="/dashboard" />} />
+                  <Route path="/admin" element={user.email === 'lelalusiana215@gmail.com' ? <AdminPanel user={user} /> : <Navigate to="/dashboard" />} />
                   <Route path="/guru" element={user.role === 'KEPALA_SEKOLAH' ? <TeacherManagement user={user} /> : <Navigate to="/dashboard" />} />
-                  <Route path="/profil" element={user.role === 'KEPALA_SEKOLAH' ? <PrincipalProfile user={user} /> : <Navigate to="/dashboard" />} />
+                  <Route path="/profil" element={<Profile user={user} />} />
                   <Route path="/program-supervisi" element={user.role === 'KEPALA_SEKOLAH' ? <ProgramSupervisi user={user} /> : <Navigate to="/dashboard" />} />
                   <Route path="/jadwal-supervisi" element={user.role === 'KEPALA_SEKOLAH' ? <SupervisionSchedule user={user} /> : <Navigate to="/dashboard" />} />
                   <Route path="*" element={<Navigate to="/dashboard" />} />

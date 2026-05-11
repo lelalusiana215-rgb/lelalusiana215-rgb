@@ -70,7 +70,22 @@ export default function TeacherManagement({ user }: { user: User }) {
             email: formData.email,
             planned_schedule: formData.planned_schedule
           });
-          setMessage({ type: "success", text: "Data guru berhasil diperbarui." });
+
+          // Also update existing supervisions for this teacher
+          const supervisionsRef = collection(db, "supervisions");
+          const q = query(supervisionsRef, where("teacher_id", "==", editingTeacher.id));
+          const querySnapshot = await getDocs(q);
+          const batch = writeBatch(db);
+          querySnapshot.forEach((docSnap) => {
+            batch.update(doc(db, "supervisions", docSnap.id), {
+              teacher_name: formData.name,
+              teacher_nip: formData.nip,
+              teacher_email: formData.email
+            });
+          });
+          await batch.commit();
+
+          setMessage({ type: "success", text: "Data guru dan jadwal terkait berhasil diperbarui." });
         } catch (err) {
           console.error("Error updating teacher:", err);
           setError("Gagal memperbarui data guru.");
@@ -92,7 +107,8 @@ export default function TeacherManagement({ user }: { user: User }) {
             subject: formData.subject || "",
             planned_schedule: formData.planned_schedule,
             status: "ACTIVE",
-            created_at: serverTimestamp()
+            created_at: serverTimestamp(),
+            api_key: ""
           };
 
           const docRef = await addDoc(collection(db, "users"), teacherData);
@@ -104,6 +120,7 @@ export default function TeacherManagement({ user }: { user: User }) {
               teacher_id: teacherId,
               teacher_name: formData.name,
               teacher_nip: formData.nip,
+              teacher_email: formData.email,
               principal_id: user.id,
               principal_name: user.name,
               principal_nip: user.nip || "-",
