@@ -59,6 +59,26 @@ export default function TeacherManagement({ user }: { user: User }) {
     setSubmitting(true);
     setError("");
     try {
+      // Validation: Check for duplicate Stage 3 (Pelaksanaan) dates in the same semester
+      const currentSemester = formData.semester.toLowerCase() as "ganjil" | "genap";
+      const targetDate = formData.planned_schedule[currentSemester].stage3;
+
+      if (targetDate) {
+        const isDuplicateDate = teachers.some(teacher => {
+          // If editing, skip the current teacher being edited
+          if (editingTeacher && teacher.id === editingTeacher.id) return false;
+          
+          const teacherSched = teacher.planned_schedule?.[currentSemester]?.stage3;
+          return teacherSched === targetDate;
+        });
+
+        if (isDuplicateDate) {
+          setError(`Tanggal pelaksanaan (${targetDate}) sudah dijadwalkan untuk guru lain di semester ini. Silakan pilih tanggal yang berbeda.`);
+          setSubmitting(false);
+          return;
+        }
+      }
+
       if (editingTeacher) {
         // Update existing teacher in Firestore
         try {
