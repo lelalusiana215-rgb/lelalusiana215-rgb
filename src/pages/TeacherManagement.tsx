@@ -81,7 +81,10 @@ export default function TeacherManagement({ user }: { user: User }) {
 
           // Sync with existing supervisions
           const supervisionsRef = collection(db, "supervisions");
-          const q = query(supervisionsRef, where("teacher_id", "==", editingTeacher.id));
+          const q = query(supervisionsRef, 
+            where("teacher_id", "==", editingTeacher.id),
+            where("school_id", "==", user.school_id)
+          );
           const querySnapshot = await getDocs(q);
           const batch = writeBatch(db);
           
@@ -93,14 +96,20 @@ export default function TeacherManagement({ user }: { user: User }) {
             };
             if (formData.email) supUpdate.teacher_email = formData.email;
             
+            // Normalize semester comparison to handle case inconsistency
+            const currentSemester = formData.semester.toUpperCase();
+            const docSemester = (supData.semester || "").toUpperCase();
+
             // If the supervision is for the current selected semester, sync the dates
-            if (supData.semester === formData.semester) {
-              const currentSched = formData.semester === "GANJIL" ? formData.planned_schedule.ganjil : formData.planned_schedule.genap;
-              supUpdate.stage1_date = currentSched.stage1;
-              supUpdate.stage2_date = currentSched.stage2;
-              supUpdate.stage3_date = currentSched.stage3;
-              supUpdate.stage4_date = currentSched.stage4;
-              supUpdate.date = currentSched.stage1; // Primary date
+            if (docSemester === currentSemester) {
+              const schedObj = currentSemester === "GANJIL" ? formData.planned_schedule.ganjil : formData.planned_schedule.genap;
+              if (schedObj) {
+                supUpdate.stage1_date = schedObj.stage1 || "";
+                supUpdate.stage2_date = schedObj.stage2 || "";
+                supUpdate.stage3_date = schedObj.stage3 || "";
+                supUpdate.stage4_date = schedObj.stage4 || "";
+                supUpdate.date = schedObj.stage1 || supData.date || ""; // Primary date
+              }
             }
             
             batch.update(doc(db, "supervisions", docSnap.id), supUpdate);
@@ -109,16 +118,16 @@ export default function TeacherManagement({ user }: { user: User }) {
           await batch.commit();
 
           // Check if we need to create a supervision for the selected semester if it doesn't exist
-          const hasCurrentSemesterSup = querySnapshot.docs.some(d => d.data().semester === formData.semester);
+          const hasCurrentSemesterSup = querySnapshot.docs.some(d => (d.data().semester || "").toUpperCase() === formData.semester.toUpperCase());
           const currentSched = formData.semester === "GANJIL" ? formData.planned_schedule.ganjil : formData.planned_schedule.genap;
 
-          if (!hasCurrentSemesterSup && currentSched.stage1) {
+          if (!hasCurrentSemesterSup && currentSched && currentSched.stage1) {
             await addDoc(collection(db, "supervisions"), {
               teacher_id: editingTeacher.id,
               teacher_name: formData.name,
               teacher_nip: formData.nip,
               teacher_email: formData.email || editingTeacher.email || "",
-              principal_id: user.id,
+              principal_id: user.id || auth.currentUser?.uid,
               principal_name: user.name,
               principal_nip: user.nip || "-",
               school_id: user.school_id,
@@ -136,8 +145,8 @@ export default function TeacherManagement({ user }: { user: User }) {
 
           setMessage({ type: "success", text: "Data guru dan jadwal supervisi berhasil diperbarui." });
         } catch (err: any) {
-          console.error("Error updating teacher:", err);
-          setError("Gagal memperbarui data guru: " + (err.message || "Izin ditolak"));
+          console.error("Error updating teacher detailed:", err);
+          setError(`Gagal memperbarui data: ${err.code || 'Error'} - ${err.message || "Izin ditolak"}`);
           setSubmitting(false);
           return;
         }
@@ -219,6 +228,11 @@ export default function TeacherManagement({ user }: { user: User }) {
 
   const handleEdit = (teacher: any) => {
     setEditingTeacher(teacher);
+    
+    // Deep merge/fallback for planned_schedule to avoid TypeErrors
+    const defaultSched = { stage1: "", stage2: "", stage3: "", stage4: "" };
+    const ps = teacher.planned_schedule || {};
+    
     setFormData({
       name: teacher.name || "",
       email: teacher.email || "",
@@ -227,9 +241,9 @@ export default function TeacherManagement({ user }: { user: User }) {
       teaching_class: teacher.teaching_class || "",
       rank_grade: teacher.rank_grade || "",
       subject: teacher.subject || "",
-      planned_schedule: teacher.planned_schedule || {
-        ganjil: { stage1: "", stage2: "", stage3: "", stage4: "" },
-        genap: { stage1: "", stage2: "", stage3: "", stage4: "" }
+      planned_schedule: {
+        ganjil: { ...defaultSched, ...(ps.ganjil || {}) },
+        genap: { ...defaultSched, ...(ps.genap || {}) }
       },
       semester: teacher.semester || "GANJIL"
     });
@@ -257,7 +271,8 @@ export default function TeacherManagement({ user }: { user: User }) {
       const supervisionsRef = collection(db, "supervisions");
       const qSups = query(
         supervisionsRef, 
-        where("teacher_id", "==", teacherToDelete)
+        where("teacher_id", "==", teacherToDelete),
+        where("school_id", "==", user.school_id)
       );
       
       try {

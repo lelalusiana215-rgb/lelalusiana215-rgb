@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "../types";
-import { ClipboardCheck, CheckCircle2, Clock, AlertCircle, TrendingUp, Calendar, User as UserIcon, School } from "lucide-react";
+import { ClipboardCheck, CheckCircle2, Clock, AlertCircle, TrendingUp, Calendar, User as UserIcon, School, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { db } from "../firebase";
@@ -343,7 +343,7 @@ export default function Dashboard({ user }: { user: User }) {
       </div>
 
       {/* AI Setup Reminder (Only for Principal/Admin who hasn't set API key and isn't demo) */}
-      {(user.role === 'KEPALA_SEKOLAH' || user.role === 'ADMIN') && user.email !== 'demo@supervisi.com' && !user.api_key && (
+      {user.role === 'KEPALA_SEKOLAH' && user.email !== 'demo@supervisi.com' && !user.api_key && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

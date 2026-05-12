@@ -53,27 +53,24 @@ service cloud.firestore {
     }
 
     function isPrincipal() {
-      let path = /databases/$(database)/documents/users/$(request.auth.uid);
       return isAuthenticated() && (
-        (exists(path) && getUserData().role == 'KEPALA_SEKOLAH') ||
-        request.auth.token.email == "demo@supervisi.com"
+        request.auth.token.email == "demo@supervisi.com" ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'KEPALA_SEKOLAH')
       );
     }
 
     function isAdmin() {
-      let path = /databases/$(database)/documents/users/$(request.auth.uid);
       return isAuthenticated() && (
-        (exists(path) && getUserData().role == 'ADMIN') || 
-        request.auth.token.email == "lelalusiana215@gmail.com"
+        request.auth.token.email == "lelalusiana215@gmail.com" ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN')
       );
     }
 
     function getSchoolId() {
-      if (!isAuthenticated()) return "";
-      if (request.auth.token.email == "demo@supervisi.com") return "demo_school";
-      if (request.auth.token.email == "lelalusiana215@gmail.com") return "admin_school";
-      let path = /databases/$(database)/documents/users/$(request.auth.uid);
-      return exists(path) ? getUserData().school_id : "";
+      return !isAuthenticated() ? "" :
+             request.auth.token.email == "demo@supervisi.com" ? "demo_school" :
+             request.auth.token.email == "lelalusiana215@gmail.com" ? "admin_school" :
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.school_id : "";
     }
 
     function hasOnlyAllowedFields(fields) {
@@ -121,6 +118,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         isOwner(userId) || 
         (isPrincipal() && getSchoolId() == resource.data.school_id) ||
+        resource.data.principal_id == request.auth.uid ||
         isAdmin()
       );
       
@@ -132,15 +130,15 @@ service cloud.firestore {
       ) && isValidUser(request.resource.data);
       
       allow update: if isAuthenticated() && (
-        (isOwner(userId) && 
-         request.resource.data.role == resource.data.role && 
-         request.resource.data.school_id == resource.data.school_id) ||
-        (isPrincipal() && resource.data.role == 'GURU' && resource.data.school_id == getSchoolId()) ||
+        isOwner(userId) || 
+        resource.data.principal_id == request.auth.uid ||
+        isPrincipal() || 
         isAdmin()
       );
 
       allow delete: if isAuthenticated() && (
-        (isPrincipal() && resource.data.role == 'GURU' && resource.data.school_id == getSchoolId()) ||
+        resource.data.principal_id == request.auth.uid ||
+        isPrincipal() || 
         isAdmin()
       );
     }
@@ -161,27 +159,26 @@ service cloud.firestore {
 
     match /supervisions/{supervisionId} {
       allow read: if isAuthenticated() && (
+        (resource.data.principal_id == request.auth.uid) ||
         (isPrincipal() && getSchoolId() == resource.data.school_id) ||
         (resource.data.teacher_id == request.auth.uid) ||
         isAdmin()
       );
       
       allow create: if isAuthenticated() && (
-        (isPrincipal() && isValidSupervision(request.resource.data) && 
-         request.resource.data.principal_id == request.auth.uid &&
-         request.resource.data.school_id == getSchoolId()) ||
-        (request.auth.token.email == "demo@supervisi.com" && request.resource.data.school_id == "demo_school") ||
+        isPrincipal() || 
         isAdmin()
       );
       
       allow update: if isAuthenticated() && (
-        (isPrincipal() && resource.data.school_id == getSchoolId()) ||
-        (request.auth.token.email == "demo@supervisi.com" && resource.data.school_id == "demo_school") ||
+        resource.data.principal_id == request.auth.uid ||
+        isPrincipal() || 
         isAdmin()
       );
       
       allow delete: if isAuthenticated() && (
-        (isPrincipal() && resource.data.school_id == getSchoolId()) ||
+        resource.data.principal_id == request.auth.uid ||
+        isPrincipal() || 
         isAdmin()
       );
     }
