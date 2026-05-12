@@ -60,37 +60,84 @@ export default function TeacherManagement({ user }: { user: User }) {
     setError("");
     try {
       if (editingTeacher) {
-        // Update existing teacher in Firestore directly
+        // Update existing teacher in Firestore
         try {
-          await updateDoc(doc(db, "users", editingTeacher.id), {
+          const updateData: any = {
             name: formData.name,
             nip: formData.nip,
             teaching_class: formData.teaching_class,
             rank_grade: formData.rank_grade,
             subject: formData.subject,
-            email: formData.email,
             planned_schedule: formData.planned_schedule,
             semester: formData.semester
-          });
+          };
 
-          // Also update existing supervisions for this teacher
+          // Only update email if provided or ensure it's not empty if previously existed
+          if (formData.email) {
+            updateData.email = formData.email;
+          }
+
+          await updateDoc(doc(db, "users", editingTeacher.id), updateData);
+
+          // Sync with existing supervisions
           const supervisionsRef = collection(db, "supervisions");
           const q = query(supervisionsRef, where("teacher_id", "==", editingTeacher.id));
           const querySnapshot = await getDocs(q);
           const batch = writeBatch(db);
+          
           querySnapshot.forEach((docSnap) => {
-            batch.update(doc(db, "supervisions", docSnap.id), {
+            const supData = docSnap.data();
+            const supUpdate: any = {
               teacher_name: formData.name,
-              teacher_nip: formData.nip,
-              teacher_email: formData.email
-            });
+              teacher_nip: formData.nip
+            };
+            if (formData.email) supUpdate.teacher_email = formData.email;
+            
+            // If the supervision is for the current selected semester, sync the dates
+            if (supData.semester === formData.semester) {
+              const currentSched = formData.semester === "GANJIL" ? formData.planned_schedule.ganjil : formData.planned_schedule.genap;
+              supUpdate.stage1_date = currentSched.stage1;
+              supUpdate.stage2_date = currentSched.stage2;
+              supUpdate.stage3_date = currentSched.stage3;
+              supUpdate.stage4_date = currentSched.stage4;
+              supUpdate.date = currentSched.stage1; // Primary date
+            }
+            
+            batch.update(doc(db, "supervisions", docSnap.id), supUpdate);
           });
+          
           await batch.commit();
 
-          setMessage({ type: "success", text: "Data guru dan jadwal terkait berhasil diperbarui." });
-        } catch (err) {
+          // Check if we need to create a supervision for the selected semester if it doesn't exist
+          const hasCurrentSemesterSup = querySnapshot.docs.some(d => d.data().semester === formData.semester);
+          const currentSched = formData.semester === "GANJIL" ? formData.planned_schedule.ganjil : formData.planned_schedule.genap;
+
+          if (!hasCurrentSemesterSup && currentSched.stage1) {
+            await addDoc(collection(db, "supervisions"), {
+              teacher_id: editingTeacher.id,
+              teacher_name: formData.name,
+              teacher_nip: formData.nip,
+              teacher_email: formData.email || editingTeacher.email || "",
+              principal_id: user.id,
+              principal_name: user.name,
+              principal_nip: user.nip || "-",
+              school_id: user.school_id,
+              semester: formData.semester,
+              date: currentSched.stage1,
+              stage1_date: currentSched.stage1,
+              stage2_date: currentSched.stage2,
+              stage3_date: currentSched.stage3,
+              stage4_date: currentSched.stage4,
+              status: "BELUM",
+              final_score: 0,
+              created_at: serverTimestamp()
+            });
+          }
+
+          setMessage({ type: "success", text: "Data guru dan jadwal supervisi berhasil diperbarui." });
+        } catch (err: any) {
           console.error("Error updating teacher:", err);
-          setError("Gagal memperbarui data guru.");
+          setError("Gagal memperbarui data guru: " + (err.message || "Izin ditolak"));
           setSubmitting(false);
           return;
         }

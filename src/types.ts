@@ -29,6 +29,7 @@ export interface User {
   subject?: string;
   planned_schedule?: PlannedSchedule;
   api_key?: string;
+  semester?: 'GANJIL' | 'GENAP';
 }
 
 export interface School {
