@@ -2,10 +2,21 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import admin from "firebase-admin";
+import { GoogleGenAI } from "@google/genai";
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// Initialize Gemini
+const genAI = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+  httpOptions: {
+    headers: {
+      'User-Agent': 'aistudio-build',
+    }
+  }
+});
 
 // Initialize Firebase Config
 let firebaseConfig: any;
@@ -175,6 +186,38 @@ app.post("/api/teachers", async (req, res) => {
     }
     
     res.status(500).json({ error: errorMessage });
+  }
+});
+
+app.post("/api/gemini/generate-notes", async (req, res) => {
+  const { prompt, customKey } = req.body;
+  
+  if (!prompt) {
+    return res.status(400).json({ error: "Prompt is required" });
+  }
+
+  try {
+    // If user provided a custom key, use it. Otherwise use the server key.
+    const apiKey = customKey || process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      return res.status(500).json({ error: "Gemini API Key not configured on server" });
+    }
+
+    const ai = customKey ? new GoogleGenAI({ 
+      apiKey,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    }) : genAI;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+    });
+
+    res.json({ text: response.text });
+  } catch (err: any) {
+    console.error("Gemini API Error:", err);
+    res.status(500).json({ error: err.message || "Failed to generate AI notes" });
   }
 });
 

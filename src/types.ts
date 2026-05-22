@@ -30,6 +30,7 @@ export interface User {
   planned_schedule?: PlannedSchedule;
   api_key?: string;
   semester?: 'GANJIL' | 'GENAP';
+  academic_year?: string;
 }
 
 export interface School {
@@ -76,6 +77,7 @@ export interface Supervision {
   logo_school?: string;
   logo_gov?: string;
   semester?: 'GANJIL' | 'GENAP';
+  academic_year?: string;
 }
 
 export interface InstrumentItem {

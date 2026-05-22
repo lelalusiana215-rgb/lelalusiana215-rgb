@@ -15,7 +15,6 @@ import {
 } from "../constants";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
-import { GoogleGenAI } from "@google/genai";
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType, ImageRun } from "docx";
 import { saveAs } from "file-saver";
 import { db } from "../firebase";
@@ -162,51 +161,11 @@ export default function SupervisionDetail({ user }: { user: User }) {
   };
 
   const generateAINotes = async () => {
-    try {
-      if ((window as any).aistudio && (window as any).aistudio.hasSelectedApiKey && !(await (window as any).aistudio.hasSelectedApiKey())) {
-        await (window as any).aistudio.openSelectKey();
-      }
-    } catch (err) {
-      console.error("Error checking API key:", err);
-    }
-
     setIsGenerating(true);
     setMessage(null);
     try {
-      // 1. Check current user object (Loaded from Firestore in App.tsx)
-      let apiKey = user.api_key;
-      
-      // 2. Fallback to LocalStorage (Legacy/Device-specific)
-      if (!apiKey) {
-        apiKey = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
-      }
-
-      // 2b. Special Demo User Fallback
-      if (!apiKey && user.email === 'demo@supervisi.com') {
-        // Use platform key or firestore key if available, otherwise we will hit the error below
-      }
-      
-      // 3. Fallback to process.env (AI Studio Platform Key)
-      if (!apiKey) {
-        apiKey = (typeof process !== 'undefined' && process.env ? (process.env as any).GEMINI_API_KEY : null);
-      }
-      
-      // 4. Fallback to Firestore config (Global System Key)
-      if (!apiKey) {
-        try {
-          const configSnap = await getDoc(doc(db, "config", "gemini"));
-          if (configSnap.exists() && configSnap.data().apiKey) {
-            apiKey = configSnap.data().apiKey;
-          }
-        } catch (configErr) {
-          console.error("Error fetching custom API key from Firestore:", configErr);
-        }
-      }
-      
-      if (!apiKey) {
-        throw new Error("API Key tidak ditemukan. Silakan konfigurasi API Key di profil Anda atau Hubungi Admin.");
-      }
-      const ai = new GoogleGenAI({ apiKey });
+      // 1. Get custom key if available
+      let customKey = user.api_key || localStorage.getItem('CUSTOM_GEMINI_API_KEY') || "";
       
       let instruments: any[] = [];
       let currentData: any;
@@ -262,12 +221,19 @@ export default function SupervisionDetail({ user }: { user: User }) {
       
       Berikan catatan dalam Bahasa Indonesia yang sopan dan memotivasi. Fokus pada area yang perlu ditingkatkan jika ada skor rendah, dan apresiasi jika skor tinggi. Maksimal 3-4 kalimat.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
+      const response = await fetch("/api/gemini/generate-notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, customKey })
       });
 
-      const generatedText = response.text || "Gagal mengenerate catatan.";
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Gagal generate AI.");
+      }
+
+      const generatedText = data.text || "Gagal mengenerate catatan.";
       
       if (activeStage === 1) setStage1({ ...stage1, notes: generatedText });
       else if (activeStage === 2) setStage2({ ...stage2, notes: generatedText });
@@ -279,25 +245,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
 
     } catch (err: any) {
       console.error(err);
-      const isKeyError = err.message?.includes("Requested entity was not found") || err.message?.includes("API Key tidak ditemukan");
-      if (isKeyError) {
-        setMessage({ 
-          type: "error", 
-          text: (
-            <span>
-              API Key tidak valid atau belum dikonfigurasi. 
-              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline ml-1">
-                Klik di sini untuk mendapatkan API Key dari Google AI Studio.
-              </a>
-            </span>
-          )
-        });
-        if ((window as any).aistudio?.openSelectKey) {
-          (window as any).aistudio.openSelectKey();
-        }
-      } else {
-        setMessage({ type: "error", text: "Gagal mengenerate catatan dengan AI. Pastikan API Key Anda sudah benar." });
-      }
+      setMessage({ type: "error", text: "Gagal mengenerate catatan dengan AI. Pastikan API Key Anda sudah benar." });
     } finally {
       setIsGenerating(false);
     }

@@ -201,6 +201,11 @@ export default function SupervisionList({ user }: { user: User }) {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-bold text-zinc-900 group-hover:text-emerald-600 transition-colors">{sup.teacher_name}</p>
+                        {sup.academic_year && (
+                          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-zinc-100 text-zinc-500 border border-zinc-200">
+                            TA: {sup.academic_year}
+                          </span>
+                        )}
                         {sup.semester && (
                           <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${sup.semester.toLowerCase() === 'ganjil' ? 'bg-indigo-50 text-indigo-500 border border-indigo-100' : 'bg-amber-50 text-amber-500 border border-amber-100'}`}>
                             {sup.semester}

@@ -19,6 +19,7 @@ export default function TeacherManagement({ user }: { user: User }) {
     rank_grade: "",
     subject: "",
     semester: "GANJIL" as "GANJIL" | "GENAP",
+    academic_year: "2024/2025",
     planned_schedule: {
       ganjil: { stage1: "", stage2: "", stage3: "", stage4: "" },
       genap: { stage1: "", stage2: "", stage3: "", stage4: "" }
@@ -89,7 +90,8 @@ export default function TeacherManagement({ user }: { user: User }) {
             rank_grade: formData.rank_grade,
             subject: formData.subject,
             planned_schedule: formData.planned_schedule,
-            semester: formData.semester
+            semester: formData.semester,
+            academic_year: formData.academic_year
           };
 
           // Only update email if provided or ensure it's not empty if previously existed
@@ -152,6 +154,7 @@ export default function TeacherManagement({ user }: { user: User }) {
               principal_nip: user.nip || "-",
               school_id: user.school_id,
               semester: formData.semester,
+              academic_year: formData.academic_year,
               date: currentSched.stage1,
               stage1_date: currentSched.stage1,
               stage2_date: currentSched.stage2,
@@ -184,6 +187,7 @@ export default function TeacherManagement({ user }: { user: User }) {
             rank_grade: formData.rank_grade || "",
             subject: formData.subject || "",
             semester: formData.semester,
+            academic_year: formData.academic_year || "2024/2025",
             planned_schedule: formData.planned_schedule,
             status: "ACTIVE",
             created_at: serverTimestamp(),
@@ -207,6 +211,7 @@ export default function TeacherManagement({ user }: { user: User }) {
               principal_nip: user.nip || "-",
               school_id: user.school_id,
               semester: formData.semester,
+              academic_year: formData.academic_year,
               date: currentSched.stage1,
               stage1_date: currentSched.stage1,
               stage2_date: currentSched.stage2,
@@ -231,6 +236,7 @@ export default function TeacherManagement({ user }: { user: User }) {
       setFormData({ 
         name: "", email: "", password: "", nip: "", teaching_class: "", rank_grade: "", subject: "",
         semester: "GANJIL" as "GANJIL" | "GENAP",
+        academic_year: "2024/2025",
         planned_schedule: { 
           ganjil: { stage1: "", stage2: "", stage3: "", stage4: "" },
           genap: { stage1: "", stage2: "", stage3: "", stage4: "" }
@@ -265,7 +271,8 @@ export default function TeacherManagement({ user }: { user: User }) {
         ganjil: { ...defaultSched, ...(ps.ganjil || {}) },
         genap: { ...defaultSched, ...(ps.genap || {}) }
       },
-      semester: teacher.semester || "GANJIL"
+      semester: teacher.semester || "GANJIL",
+      academic_year: teacher.academic_year || "2024/2025"
     });
     setActiveTab("profile");
     setIsModalOpen(true);
@@ -414,6 +421,10 @@ export default function TeacherManagement({ user }: { user: User }) {
               <div className="flex items-center text-sm text-zinc-500">
                 <div className="w-4 mr-3 flex justify-center text-zinc-300 font-bold text-[10px]">KL</div>
                 Kelas: {teacher.teaching_class || "-"}
+              </div>
+              <div className="flex items-center text-sm text-zinc-500">
+                <div className="w-4 mr-3 flex justify-center text-zinc-300 font-bold text-[10px]">TA</div>
+                Tahun Ajaran: {teacher.academic_year || "-"}{teacher.semester ? ` (${teacher.semester})` : ""}
               </div>
               <div className="flex items-center text-sm text-zinc-500">
                 <div className="w-4 mr-3 flex justify-center text-zinc-300 font-bold text-[10px]">PG</div>
@@ -684,7 +695,20 @@ export default function TeacherManagement({ user }: { user: User }) {
                             Genap
                           </button>
                         </div>
-                        <p className="text-[10px] text-zinc-400 italic">* Supervisi akan didaftarkan otomatis untuk semester yang dipilih.</p>
+                      </div>
+                      <div className="space-y-4 mt-4">
+                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tahun Ajaran Aktif</label>
+                        <select 
+                          value={formData.academic_year}
+                          onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-bold"
+                        >
+                          <option value="2023/2024">2023/2024</option>
+                          <option value="2024/2025">2024/2025</option>
+                          <option value="2025/2026">2025/2026</option>
+                          <option value="2026/2027">2026/2027</option>
+                        </select>
+                        <p className="text-[10px] text-zinc-400 italic">* Supervisi akan didaftarkan otomatis untuk tahun ajaran dan semester yang dipilih.</p>
                       </div>
                     </div>
                   </div>
