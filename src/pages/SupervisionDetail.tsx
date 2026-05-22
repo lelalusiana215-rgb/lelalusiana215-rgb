@@ -1789,106 +1789,137 @@ export default function SupervisionDetail({ user }: { user: User }) {
 
           {activeStage === 7 && (
             <div className="p-8">
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
                 <div>
-                  <h3 className="text-xl font-bold">Tahap 7: Refleksi & RTL</h3>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl">
+                      <RotateCcw size={20} />
+                    </div>
+                    <h3 className="text-2xl font-bold text-zinc-900">Tahap 7: Refleksi & RTL</h3>
+                  </div>
                   {supervision.stage4_date && (
-                    <p className="text-xs text-zinc-400 mt-1 flex items-center">
-                      <Calendar size={12} className="mr-1" />
-                      Jadwal (Tahap 4 Refleksi): {new Date(supervision.stage4_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    <p className="text-sm text-zinc-400 flex items-center ml-11">
+                      <Calendar size={14} className="mr-2" />
+                      Jadwal Refleksi: {new Date(supervision.stage4_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   )}
                 </div>
-                <div className="text-right flex flex-col items-end gap-2">
-                  <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Skor Akhir Estimasi</p>
-                  <p className="text-2xl font-bold text-emerald-600">
-                    {((calculateScore(1, stage1) + calculateScore(2, stage2) + calculateScore(3, stage3) + calculateScore(5, stage5) + calculateScore(7, stage7)) / 5).toFixed(1)}%
-                  </p>
-                  <div className="flex items-center gap-3">
+                <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 flex items-center gap-6">
+                  <div className="text-right">
+                    <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold mb-1">Estimasi Skor Akhir</p>
+                    <p className="text-3xl font-black text-emerald-600 tabular-nums">
+                      {((calculateScore(1, stage1) + calculateScore(2, stage2) + calculateScore(3, stage3) + calculateScore(5, stage5) + calculateScore(7, stage7)) / 5).toFixed(1)}%
+                    </p>
+                  </div>
+                  <div className="h-10 w-px bg-zinc-200" />
+                  <div className="flex flex-col gap-2">
                     <button 
                       onClick={() => generateStagePDF(7)}
-                      className="flex items-center space-x-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      className="flex items-center space-x-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition-all"
                     >
-                      <Download size={12} />
+                      <Download size={14} />
                       <span>PDF</span>
                     </button>
                     <button 
                       onClick={() => generateStageWord(7)}
-                      className="flex items-center space-x-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                      className="flex items-center space-x-2 text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all"
                     >
-                      <Download size={12} />
+                      <Download size={14} />
                       <span>Word</span>
                     </button>
                   </div>
                 </div>
               </div>
-              <div className="space-y-8">
-                <div className="space-y-6">
-                  {STAGE5_INSTRUMENTS.map((item) => (
-                    <div key={item.id} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
-                      <div className="flex items-center space-x-4 mb-4">
-                        <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-400">
-                          {item.id}
+
+              <div className="space-y-10">
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Instrumen Refleksi</h4>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {STAGE5_INSTRUMENTS.map((item) => (
+                      <div key={item.id} className="group p-5 bg-white rounded-2xl border border-zinc-100 hover:border-emerald-200 hover:shadow-md transition-all">
+                        <div className="flex items-start justify-between mb-4 gap-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-md bg-zinc-50 border border-zinc-100 flex items-center justify-center text-[10px] font-bold text-zinc-400 group-hover:bg-emerald-50 group-hover:text-emerald-500 transition-colors shrink-0 mt-0.5">
+                              {item.id}
+                            </div>
+                            <span className="text-sm font-bold text-zinc-700 leading-tight">{item.text}</span>
+                          </div>
                         </div>
-                        <span className="font-bold text-zinc-800">{item.text}</span>
+                        <div className="flex gap-2">
+                          {[1, 2, 3, 4].map((val) => (
+                            <button
+                              key={val}
+                              onClick={() => setStage7({ ...stage7, items: { ...stage7.items, [item.id]: val } })}
+                              className={`flex-1 py-2.5 rounded-xl border-2 text-xs font-black transition-all ${stage7.items[item.id] === val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-zinc-50 border-transparent text-zinc-400 hover:border-zinc-200'}`}
+                            >
+                              {val}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <div className="grid grid-cols-4 gap-4">
-                        {[1, 2, 3, 4].map((val) => (
-                          <button
-                            key={val}
-                            onClick={() => setStage7({ ...stage7, items: { ...stage7.items, [item.id]: val } })}
-                            className={`py-3 rounded-xl border font-bold transition-all ${stage7.items[item.id] === val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
-                          >
-                            {val}
-                          </button>
-                        ))}
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-8 bg-zinc-50 rounded-[2.5rem] border border-zinc-200 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                    <PenTool size={120} />
+                  </div>
+                  
+                  <div className="relative z-10">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-zinc-900 text-white rounded-2xl">
+                          <MessageSquare size={20} />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-black text-zinc-900 uppercase tracking-tight">Rencana Tindak Lanjut</h4>
+                          <p className="text-xs text-zinc-400">Rumuskan langkah operasional bersama guru</p>
+                        </div>
                       </div>
+                      <button 
+                        onClick={generateAINotes}
+                        disabled={isGenerating}
+                        className="flex items-center justify-center space-x-2 text-xs font-bold text-emerald-600 bg-white border border-emerald-100 hover:border-emerald-200 px-5 py-3 rounded-2xl shadow-sm hover:shadow transition-all disabled:opacity-50"
+                      >
+                        <Sparkles size={14} className={isGenerating ? 'animate-pulse' : ''} />
+                        <span>{isGenerating ? 'Menganalisis...' : 'Generate RTL dengan AI'}</span>
+                      </button>
                     </div>
-                  ))}
+                    <textarea 
+                      value={stage7.notes}
+                      onChange={(e) => setStage7({ ...stage7, notes: e.target.value })}
+                      className="w-full p-6 bg-white border border-zinc-200 rounded-3xl outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all min-h-[160px] text-zinc-600 leading-relaxed shadow-inner"
+                      placeholder="Tuliskan langkah konkret perbaikan, dukungan yang dibutuhkan, dan target waktu penyelesaian..."
+                    />
+                  </div>
                 </div>
 
-                <div className="p-8 bg-emerald-50 rounded-3xl border border-emerald-100">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-emerald-800 font-bold flex items-center">
-                      <Award className="mr-2" size={20} />
-                      Rencana Tindak Lanjut (RTL)
-                    </h4>
-                    <button 
-                      onClick={generateAINotes}
-                      disabled={isGenerating}
-                      className="flex items-center space-x-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-50 bg-white px-3 py-1.5 rounded-full shadow-sm"
-                    >
-                      <Sparkles size={12} />
-                      <span>{isGenerating ? 'Mengenerate...' : 'Generate RTL dengan AI'}</span>
-                    </button>
+                <div className="flex flex-col md:flex-row items-center justify-between p-10 bg-[#141414] text-white rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-32 -mt-32 transition-all group-hover:bg-emerald-500/20" />
+                  
+                  <div className="relative z-10 text-center md:text-left mb-8 md:mb-0">
+                    <h4 className="text-2xl font-black mb-2 tracking-tight">Selesaikan Supervisi</h4>
+                    <p className="text-white/40 text-sm max-w-md">Laporan akan dikunci dan skor akhir akan difinalisasi. Anda tidak dapat mengubah data setelah tahap ini selesai.</p>
                   </div>
-                  <textarea 
-                    value={stage7.notes}
-                    onChange={(e) => setStage7({ ...stage7, notes: e.target.value })}
-                    className="w-full p-4 bg-white border border-emerald-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[120px]"
-                    placeholder="Tuliskan langkah konkret perbaikan dan target waktu..."
-                  />
-                </div>
-
-                <div className="flex flex-col md:flex-row items-center justify-between p-8 bg-zinc-900 text-white rounded-3xl shadow-xl gap-8">
-                  <div className="text-center md:text-left">
-                    <h4 className="text-lg font-bold">Finalisasi Supervisi</h4>
-                    <p className="text-white/50 text-xs mt-1">Dengan menekan tombol ini, status supervisi akan menjadi SELESAI dan laporan akan dikunci.</p>
-                  </div>
+                  
                   <button 
                     onClick={() => handleSaveStage('SELESAI')}
                     disabled={saving}
-                    className="px-10 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center space-x-3 disabled:opacity-50"
+                    className="relative z-10 px-12 py-5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-2xl font-black shadow-[0_0_40px_rgba(16,185,129,0.3)] transition-all flex items-center space-x-4 disabled:opacity-50 active:scale-95 shrink-0"
                   >
                     {saving ? (
                       <>
-                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        <div className="w-5 h-5 border-3 border-white/20 border-t-white rounded-full animate-spin" />
                         <span>Memproses...</span>
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 size={20} />
-                        <span>Selesaikan & Tanda Tangan</span>
+                        <CheckCircle2 size={24} />
+                        <span className="text-lg">Finalisasi Laporan</span>
                       </>
                     )}
                   </button>
