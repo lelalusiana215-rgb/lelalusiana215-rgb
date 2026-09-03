@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { User, School } from "../types";
 import { db } from "../firebase";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
-import { Printer, ArrowLeft, Calendar, User as UserIcon, BookOpen, GraduationCap } from "lucide-react";
+import { collection, query, where, getDocs, doc, getDoc, writeBatch } from "firebase/firestore";
+import { Printer, ArrowLeft, Calendar, User as UserIcon, BookOpen, GraduationCap, Edit2, Save, X, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 
@@ -12,9 +12,22 @@ export default function SupervisionSchedule({ user }: { user: User }) {
   const [loading, setLoading] = useState(true);
   const [activeSemester, setActiveSemester] = useState<"ganjil" | "genap">("ganjil");
 
+  // Edit and Save States
+  const [isEditing, setIsEditing] = useState(false);
+  const [editableTeachers, setEditableTeachers] = useState<User[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   useEffect(() => {
     fetchData();
   }, [user.school_id]);
+
+  useEffect(() => {
+    if (message?.type === 'success') {
+      const timer = setTimeout(() => setMessage(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   const fetchData = async () => {
     if (!user.school_id) return;
@@ -55,6 +68,75 @@ export default function SupervisionSchedule({ user }: { user: User }) {
     }
   };
 
+  const canEdit = user.role === 'KEPALA_SEKOLAH' || user.role === 'ADMIN';
+
+  const startEditing = () => {
+    setEditableTeachers(JSON.parse(JSON.stringify(teachers)));
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditableTeachers([]);
+  };
+
+  const handleDateChange = (teacherId: string, stage: 'stage1' | 'stage2' | 'stage3' | 'stage4', value: string) => {
+    setEditableTeachers(prev => prev.map(t => {
+      if (t.id === teacherId) {
+        const schedule = t.planned_schedule || {};
+        const semesterSchedule = schedule[activeSemester] || {};
+        return {
+          ...t,
+          planned_schedule: {
+            ...schedule,
+            [activeSemester]: {
+              ...semesterSchedule,
+              [stage]: value
+            }
+          }
+        };
+      }
+      return t;
+    }));
+  };
+
+  const saveSchedules = async () => {
+    setSaving(true);
+    setMessage(null);
+    try {
+      const batch = writeBatch(db);
+      let updatedCount = 0;
+
+      for (const t of editableTeachers) {
+        const original = teachers.find(o => o.id === t.id);
+        const originalSchedule = original?.planned_schedule || {};
+        const newSchedule = t.planned_schedule || {};
+
+        if (JSON.stringify(originalSchedule) !== JSON.stringify(newSchedule)) {
+          const docRef = doc(db, "users", t.id);
+          batch.update(docRef, {
+            planned_schedule: newSchedule
+          });
+          updatedCount++;
+        }
+      }
+
+      if (updatedCount > 0) {
+        await batch.commit();
+        setTeachers(JSON.parse(JSON.stringify(editableTeachers)));
+        setMessage({ type: "success", text: `${updatedCount} jadwal rencana supervisi berhasil disimpan!` });
+      } else {
+        setMessage({ type: "success", text: "Tidak ada perubahan jadwal yang perlu disimpan." });
+      }
+      setIsEditing(false);
+    } catch (err: any) {
+      console.error("Error saving schedules:", err);
+      setMessage({ type: "error", text: "Gagal menyimpan jadwal: " + (err.message || err) });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <div className="p-8 text-center">Memuat jadwal...</div>;
 
   return (
@@ -73,27 +155,91 @@ export default function SupervisionSchedule({ user }: { user: User }) {
         <div className="flex items-center space-x-3">
           <div className="bg-white p-1 rounded-xl border border-zinc-200 flex">
             <button
-              onClick={() => setActiveSemester("ganjil")}
+              onClick={() => {
+                setActiveSemester("ganjil");
+              }}
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeSemester === 'ganjil' ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-500 hover:bg-zinc-50'}`}
             >
               Semester Ganjil
             </button>
             <button
-              onClick={() => setActiveSemester("genap")}
+              onClick={() => {
+                setActiveSemester("genap");
+              }}
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeSemester === 'genap' ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-500 hover:bg-zinc-50'}`}
             >
               Semester Genap
             </button>
           </div>
+          
           <button 
             onClick={() => window.print()}
-            className="flex items-center space-x-2 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-emerald-700 transition-all font-bold"
+            disabled={isEditing}
+            className="flex items-center space-x-2 bg-[#141414] hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl shadow-lg transition-all font-bold"
           >
             <Printer size={20} />
             <span>Cetak Jadwal</span>
           </button>
+
+          {canEdit && (
+            <>
+              {!isEditing ? (
+                <button 
+                  onClick={startEditing}
+                  className="flex items-center space-x-2 bg-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-indigo-700 transition-all font-bold print:hidden"
+                >
+                  <Edit2 size={20} />
+                  <span>Edit Jadwal</span>
+                </button>
+              ) : (
+                <div className="flex items-center space-x-2 print:hidden">
+                  <button 
+                    onClick={cancelEditing}
+                    disabled={saving}
+                    className="flex items-center space-x-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-6 py-3 rounded-xl transition-all font-bold disabled:opacity-50"
+                  >
+                    <X size={20} />
+                    <span>Batal</span>
+                  </button>
+                  <button 
+                    onClick={saveSchedules}
+                    disabled={saving}
+                    className="flex items-center space-x-2 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-emerald-700 transition-all font-bold disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <span>Menyimpan...</span>
+                    ) : (
+                      <>
+                        <Save size={20} />
+                        <span>Simpan</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
+
+      {message && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-4 rounded-2xl text-sm border flex items-center justify-between print:hidden ${message.type === 'success' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}
+        >
+          <div className="flex items-center space-x-2">
+            <AlertCircle size={18} />
+            <span className="font-medium">{message.text}</span>
+          </div>
+          <button 
+            onClick={() => setMessage(null)}
+            className="text-zinc-400 hover:text-zinc-600 font-bold"
+          >
+            &times;
+          </button>
+        </motion.div>
+      )}
 
       {/* Document Content */}
       <motion.div 
@@ -142,8 +288,8 @@ export default function SupervisionSchedule({ user }: { user: User }) {
               </tr>
             </thead>
             <tbody>
-              {teachers.length > 0 ? (
-                teachers.map((teacher, index) => {
+              {(isEditing ? editableTeachers : teachers).length > 0 ? (
+                (isEditing ? editableTeachers : teachers).map((teacher, index) => {
                   const schedule = teacher.planned_schedule?.[activeSemester];
                   return (
                     <tr key={teacher.id}>
@@ -156,17 +302,73 @@ export default function SupervisionSchedule({ user }: { user: User }) {
                         <div>{teacher.subject || "-"}</div>
                         <div className="text-xs text-zinc-500">Kelas: {teacher.teaching_class || "-"}</div>
                       </td>
+                      
+                      {/* Stage 1 */}
                       <td className="border border-black p-2 text-center text-xs">
-                        {formatDate(schedule?.stage1)}
+                        {isEditing ? (
+                          <>
+                            <input 
+                              type="date"
+                              value={schedule?.stage1 || ""}
+                              onChange={(e) => handleDateChange(teacher.id, 'stage1', e.target.value)}
+                              className="px-2 py-1.5 border border-zinc-200 rounded-lg text-xs bg-zinc-50 hover:bg-zinc-100 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-center w-full min-w-[130px] print:hidden font-medium"
+                            />
+                            <span className="hidden print:inline">{formatDate(schedule?.stage1)}</span>
+                          </>
+                        ) : (
+                          formatDate(schedule?.stage1)
+                        )}
                       </td>
+
+                      {/* Stage 2 */}
                       <td className="border border-black p-2 text-center text-xs">
-                        {formatDate(schedule?.stage2)}
+                        {isEditing ? (
+                          <>
+                            <input 
+                              type="date"
+                              value={schedule?.stage2 || ""}
+                              onChange={(e) => handleDateChange(teacher.id, 'stage2', e.target.value)}
+                              className="px-2 py-1.5 border border-zinc-200 rounded-lg text-xs bg-zinc-50 hover:bg-zinc-100 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-center w-full min-w-[130px] print:hidden font-medium"
+                            />
+                            <span className="hidden print:inline">{formatDate(schedule?.stage2)}</span>
+                          </>
+                        ) : (
+                          formatDate(schedule?.stage2)
+                        )}
                       </td>
+
+                      {/* Stage 3 */}
                       <td className="border border-black p-2 text-center text-xs">
-                        {formatDate(schedule?.stage3)}
+                        {isEditing ? (
+                          <>
+                            <input 
+                              type="date"
+                              value={schedule?.stage3 || ""}
+                              onChange={(e) => handleDateChange(teacher.id, 'stage3', e.target.value)}
+                              className="px-2 py-1.5 border border-zinc-200 rounded-lg text-xs bg-zinc-50 hover:bg-zinc-100 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-center w-full min-w-[130px] print:hidden font-medium"
+                            />
+                            <span className="hidden print:inline">{formatDate(schedule?.stage3)}</span>
+                          </>
+                        ) : (
+                          formatDate(schedule?.stage3)
+                        )}
                       </td>
+
+                      {/* Stage 4 */}
                       <td className="border border-black p-2 text-center text-xs">
-                        {formatDate(schedule?.stage4)}
+                        {isEditing ? (
+                          <>
+                            <input 
+                              type="date"
+                              value={schedule?.stage4 || ""}
+                              onChange={(e) => handleDateChange(teacher.id, 'stage4', e.target.value)}
+                              className="px-2 py-1.5 border border-zinc-200 rounded-lg text-xs bg-zinc-50 hover:bg-zinc-100 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-center w-full min-w-[130px] print:hidden font-medium"
+                            />
+                            <span className="hidden print:inline">{formatDate(schedule?.stage4)}</span>
+                          </>
+                        ) : (
+                          formatDate(schedule?.stage4)
+                        )}
                       </td>
                     </tr>
                   );
