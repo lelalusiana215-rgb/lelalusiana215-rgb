@@ -139,13 +139,13 @@ export default function SupervisionDetail({ user }: { user: User }) {
 
       if (activeStage === 7 || status === 'SELESAI') {
         const s1 = calculateScore(1, stage1);
-        const s2 = calculateScore(2, stage2);
         const s3 = calculateScore(3, stage3);
         const s5 = calculateScore(5, stage5);
+        const s2 = calculateScore(2, stage2);
         const s7 = calculateScore(7, stage7);
         
-        const totalScore = (Number(s1) || 0) + (Number(s2) || 0) + (Number(s3) || 0) + (Number(s5) || 0) + (Number(s7) || 0);
-        updateData.final_score = totalScore / 5; // Only 5 stages have scores
+        const totalScore = (Number(s1) || 0) + (Number(s3) || 0) + (Number(s5) || 0) + (Number(s2) || 0) + (Number(s7) || 0);
+        updateData.final_score = totalScore / 5; // 5 stages have scores (Stage 1, 3, 5, 2, 7)
         updateData.recommendations = generateRecommendations(updateData.final_score);
       }
 
@@ -316,7 +316,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
     let stageData: StageData;
 
     if (stageNum === 1) { stageName = "Administrasi Pembelajaran"; instruments = STAGE1_INSTRUMENTS; stageData = stage1; }
-    else if (stageNum === 2) { stageName = "Telaah Alur Tujuan Pembelajaran (ATP)"; instruments = STAGE2_INSTRUMENTS; stageData = stage2; }
+    else if (stageNum === 2) { stageName = "Penilaian Hasil Belajar"; instruments = STAGE2_INSTRUMENTS; stageData = stage2; }
     else if (stageNum === 3) { stageName = "Telaah Modul Ajar"; instruments = STAGE3_INSTRUMENTS; stageData = stage3; }
     else if (stageNum === 4) { stageName = "Instrumen Percakapan Pra Observasi"; instruments = PRE_OBSERVATION_INSTRUMENTS; stageData = stage4; }
     else if (stageNum === 5) { stageName = "Pelaksanaan Pembelajaran"; instruments = STAGE4_INSTRUMENTS; stageData = stage5; }
@@ -348,31 +348,53 @@ export default function SupervisionDetail({ user }: { user: User }) {
 
     // Table
     const isInterview = stageNum === 4 || stageNum === 6;
-    const tableBody = instruments.map((inst, index) => {
-      const val = stageData.items[inst.id];
-      let result = "";
-      if (stageNum === 1) {
-        if (val === 2) result = "Ada dan Sesuai (2)";
-        else if (val === 1) result = "Ada tetapi tidak sesuai (1)";
-        else result = "Tidak Ada (0)";
-      } else if (isInterview) {
-        result = val ? val.toString() : "-";
-      } else {
-        result = val ? val.toString() : "0";
-      }
-      return [index + 1, inst.text, result];
-    });
+    const isStage3 = stageNum === 3;
+    
+    let tableHead = [['No', 'Komponen / Indikator', stageNum === 1 ? 'Ketersediaan' : (isInterview ? 'Catatan Supervisor' : 'Skor (1-4)')]];
+    let tableBody = [];
+    let columnStyles: any = {
+      0: { cellWidth: 10, halign: 'center' },
+      2: { cellWidth: isInterview ? 80 : 30, halign: isInterview ? 'left' : 'center' }
+    };
+
+    if (isStage3) {
+      tableHead = [['No', 'Aspek yang Diamati', 'Skala (0-4)', 'Komentar Kritis']];
+      tableBody = instruments.map((inst, index) => {
+        const val = stageData.items[inst.id];
+        const comment = stageData.items[inst.id + '_comment'] || "";
+        return [index + 1, inst.text, val !== undefined ? val.toString() : "0", comment];
+      });
+      columnStyles = {
+        0: { cellWidth: 10, halign: 'center' },
+        2: { cellWidth: 25, halign: 'center' },
+        3: { cellWidth: 60, halign: 'left' }
+      };
+    } else {
+      tableBody = instruments.map((inst, index) => {
+        const val = stageData.items[inst.id];
+        let result = "";
+        if (stageNum === 1) {
+          if (val === 4) result = "Lengkap (4)";
+          else if (val === 3) result = "Sebagian Besar (3)";
+          else if (val === 2) result = "Sebagian Kecil (2)";
+          else if (val === 1) result = "Belum Terisi (1)";
+          else result = "Tidak Ada (0)";
+        } else if (isInterview) {
+          result = val ? val.toString() : "-";
+        } else {
+          result = val ? val.toString() : "0";
+        }
+        return [index + 1, inst.text, result];
+      });
+    }
 
     (doc as any).autoTable({
       startY: lineY + 50,
-      head: [['No', 'Komponen / Indikator', stageNum === 1 ? 'Ketersediaan' : (isInterview ? 'Catatan Supervisor' : 'Skor (1-4)')]],
+      head: tableHead,
       body: tableBody,
       theme: 'grid',
       headStyles: { fillColor: [40, 40, 40], halign: 'center' },
-      columnStyles: {
-        0: { cellWidth: 10, halign: 'center' },
-        2: { cellWidth: isInterview ? 80 : 30, halign: isInterview ? 'left' : 'center' }
-      }
+      columnStyles: columnStyles
     });
 
     const finalY = (doc as any).lastAutoTable.finalY;
@@ -459,10 +481,10 @@ export default function SupervisionDetail({ user }: { user: User }) {
       head: [['Tahap', 'Skor (%)', 'Catatan / Rekomendasi']],
       body: [
         ['Administrasi', calculateScore(1, stage1).toFixed(1), stage1.notes || "-"],
-        ['Telaah ATP', calculateScore(2, stage2).toFixed(1), stage2.notes || "-"],
         ['Telaah Modul Ajar', calculateScore(3, stage3).toFixed(1), stage3.notes || "-"],
         ['Pra Observasi', "-", stage4.notes || "-"],
         ['Pelaksanaan', calculateScore(5, stage5).toFixed(1), stage5.notes || "-"],
+        ['Penilaian Hasil Belajar', calculateScore(2, stage2).toFixed(1), stage2.notes || "-"],
         ['Pasca Observasi', "-", stage6.notes || "-"],
         ['Refleksi & RTL', calculateScore(7, stage7).toFixed(1), stage7.notes || "-"],
       ],
@@ -719,7 +741,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
     let stageData: StageData;
 
     if (stageNum === 1) { stageName = "Administrasi Pembelajaran"; instruments = STAGE1_INSTRUMENTS; stageData = stage1; }
-    else if (stageNum === 2) { stageName = "Telaah Alur Tujuan Pembelajaran (ATP)"; instruments = STAGE2_INSTRUMENTS; stageData = stage2; }
+    else if (stageNum === 2) { stageName = "Penilaian Hasil Belajar"; instruments = STAGE2_INSTRUMENTS; stageData = stage2; }
     else if (stageNum === 3) { stageName = "Telaah Modul Ajar"; instruments = STAGE3_INSTRUMENTS; stageData = stage3; }
     else if (stageNum === 4) { stageName = "Instrumen Percakapan Pra Observasi"; instruments = PRE_OBSERVATION_INSTRUMENTS; stageData = stage4; }
     else if (stageNum === 5) { stageName = "Pelaksanaan Pembelajaran"; instruments = STAGE4_INSTRUMENTS; stageData = stage5; }
@@ -813,35 +835,65 @@ export default function SupervisionDetail({ user }: { user: User }) {
           new Paragraph({ text: "" }),
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "No", bold: true })] })], width: { size: 5, type: WidthType.PERCENTAGE } }),
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Komponen / Indikator", bold: true })] })] }),
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: stageNum === 1 ? "Ketersediaan" : (isInterview ? "Catatan Supervisor" : "Skor (1-4)"), bold: true })] })], width: { size: isInterview ? 40 : 20, type: WidthType.PERCENTAGE } }),
-                ],
-              }),
-              ...instruments.map((inst, index) => {
-                const val = stageData.items[inst.id];
-                let result = "";
-                if (stageNum === 1) {
-                  if (val === 2) result = "Ada dan Sesuai (2)";
-                  else if (val === 1) result = "Ada tetapi tidak sesuai (1)";
-                  else result = "Tidak Ada (0)";
-                } else if (isInterview) {
-                  result = val ? val.toString() : "-";
-                } else {
-                  result = val ? val.toString() : "0";
-                }
-                return new TableRow({
-                  children: [
-                    new TableCell({ children: [new Paragraph((index + 1).toString())] }),
-                    new TableCell({ children: [new Paragraph(inst.text)] }),
-                    new TableCell({ children: [new Paragraph(result)] }),
-                  ],
-                });
-              }),
-            ],
+            rows: (() => {
+              const isStage3 = stageNum === 3;
+              if (isStage3) {
+                return [
+                  new TableRow({
+                    children: [
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "No", bold: true })] })], width: { size: 5, type: WidthType.PERCENTAGE } }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Aspek yang Diamati", bold: true })] })], width: { size: 55, type: WidthType.PERCENTAGE } }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Skala (0-4)", bold: true })] })], width: { size: 15, type: WidthType.PERCENTAGE } }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Komentar Kritis", bold: true })] })], width: { size: 25, type: WidthType.PERCENTAGE } }),
+                    ],
+                  }),
+                  ...instruments.map((inst, index) => {
+                    const val = stageData.items[inst.id];
+                    const comment = stageData.items[inst.id + '_comment'] || "";
+                    return new TableRow({
+                      children: [
+                        new TableCell({ children: [new Paragraph((index + 1).toString())] }),
+                        new TableCell({ children: [new Paragraph(inst.text)] }),
+                        new TableCell({ children: [new Paragraph(val !== undefined ? val.toString() : "0")] }),
+                        new TableCell({ children: [new Paragraph(comment as string)] }),
+                      ],
+                    });
+                  })
+                ];
+              } else {
+                return [
+                  new TableRow({
+                    children: [
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "No", bold: true })] })], width: { size: 5, type: WidthType.PERCENTAGE } }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Komponen / Indikator", bold: true })] })] }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: stageNum === 1 ? "Ketersediaan" : (isInterview ? "Catatan Supervisor" : "Skor (1-4)"), bold: true })] })], width: { size: isInterview ? 40 : 20, type: WidthType.PERCENTAGE } }),
+                    ],
+                  }),
+                  ...instruments.map((inst, index) => {
+                    const val = stageData.items[inst.id];
+                    let result = "";
+                    if (stageNum === 1) {
+                      if (val === 4) result = "Lengkap (4)";
+                      else if (val === 3) result = "Sebagian Besar (3)";
+                      else if (val === 2) result = "Sebagian Kecil (2)";
+                      else if (val === 1) result = "Belum Terisi (1)";
+                      else result = "Tidak Ada (0)";
+                    } else if (isInterview) {
+                      result = val ? val.toString() : "-";
+                    } else {
+                      result = val ? val.toString() : "0";
+                    }
+                    return new TableRow({
+                      children: [
+                        new TableCell({ children: [new Paragraph((index + 1).toString())] }),
+                        new TableCell({ children: [new Paragraph(inst.text)] }),
+                        new TableCell({ children: [new Paragraph(result)] }),
+                      ],
+                    });
+                  })
+                ];
+              }
+            })(),
           }),
           new Paragraph({ text: "" }),
           new Paragraph({ children: [new TextRun({ text: "Catatan / Rekomendasi:", bold: true })] }),
@@ -993,13 +1045,6 @@ export default function SupervisionDetail({ user }: { user: User }) {
               }),
               new TableRow({
                 children: [
-                  new TableCell({ children: [new Paragraph("Telaah ATP")] }),
-                  new TableCell({ children: [new Paragraph(calculateScore(2, stage2).toFixed(1))] }),
-                  new TableCell({ children: [new Paragraph(stage2.notes || "-")] }),
-                ],
-              }),
-              new TableRow({
-                children: [
                   new TableCell({ children: [new Paragraph("Telaah Modul Ajar")] }),
                   new TableCell({ children: [new Paragraph(calculateScore(3, stage3).toFixed(1))] }),
                   new TableCell({ children: [new Paragraph(stage3.notes || "-")] }),
@@ -1017,6 +1062,13 @@ export default function SupervisionDetail({ user }: { user: User }) {
                   new TableCell({ children: [new Paragraph("Pelaksanaan")] }),
                   new TableCell({ children: [new Paragraph(calculateScore(5, stage5).toFixed(1))] }),
                   new TableCell({ children: [new Paragraph(stage5.notes || "-")] }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph("Penilaian Hasil Belajar")] }),
+                  new TableCell({ children: [new Paragraph(calculateScore(2, stage2).toFixed(1))] }),
+                  new TableCell({ children: [new Paragraph(stage2.notes || "-")] }),
                 ],
               }),
               new TableRow({
@@ -1116,10 +1168,10 @@ export default function SupervisionDetail({ user }: { user: User }) {
 
   const stages = [
     { id: 1, name: "1. Administrasi Pembelajaran", icon: <FileText size={18} /> },
-    { id: 2, name: "2. Telaah ATP", icon: <PenTool size={18} /> },
-    { id: 3, name: "3. Telaah Modul", icon: <PenTool size={18} /> },
-    { id: 4, name: "4. Pra Observasi", icon: <MessageSquare size={18} /> },
-    { id: 5, name: "5. Pelaksanaan", icon: <Play size={18} /> },
+    { id: 3, name: "2. Telaah Modul", icon: <PenTool size={18} /> },
+    { id: 4, name: "3. Pra Observasi", icon: <MessageSquare size={18} /> },
+    { id: 5, name: "4. Pelaksanaan", icon: <Play size={18} /> },
+    { id: 2, name: "5. Penilaian Hasil Belajar", icon: <Award size={18} /> },
     { id: 6, name: "6. Pasca Observasi", icon: <MessageSquare size={18} /> },
     { id: 7, name: "7. Refleksi", icon: <Award size={18} /> },
   ];
@@ -1267,22 +1319,34 @@ export default function SupervisionDetail({ user }: { user: User }) {
             Progres Supervisi
           </h3>
           <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-            {Math.round(((supervision.status === 'SELESAI' ? 7 : activeStage - 1) / 7) * 100)}% Selesai
+            {(() => {
+              const activeStagesList = [1, 3, 4, 5, 2, 6, 7];
+              const idx = activeStagesList.indexOf(activeStage);
+              const pct = supervision.status === 'SELESAI' ? 100 : Math.round((idx / activeStagesList.length) * 100);
+              return `${pct}% Selesai`;
+            })()}
           </span>
         </div>
         <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
           <motion.div 
             initial={{ width: 0 }}
-            animate={{ width: `${((supervision.status === 'SELESAI' ? 7 : activeStage - 1) / 7) * 100}%` }}
+            animate={{ 
+              width: (() => {
+                const activeStagesList = [1, 3, 4, 5, 2, 6, 7];
+                const idx = activeStagesList.indexOf(activeStage);
+                const pct = supervision.status === 'SELESAI' ? 100 : Math.round((idx / activeStagesList.length) * 100);
+                return `${pct}%`;
+              })()
+            }}
             className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]"
           />
         </div>
         <div className="grid grid-cols-7 gap-2 mt-4">
-          {[1, 2, 3, 4, 5, 6, 7].map((s) => (
+          {[1, 3, 4, 5, 2, 6, 7].map((s, idx) => (
             <div key={s} className="flex flex-col items-center space-y-1">
-              <div className={`w-full h-1 rounded-full ${activeStage >= s ? 'bg-emerald-500' : 'bg-zinc-100'}`} />
+              <div className={`w-full h-1 rounded-full ${activeStage === s || [1, 3, 4, 5, 2, 6, 7].indexOf(activeStage) >= idx ? 'bg-emerald-500' : 'bg-zinc-100'}`} />
               <span className={`text-[8px] font-bold uppercase tracking-tighter ${activeStage === s ? 'text-emerald-600' : 'text-zinc-400'}`}>
-                Tahap {s}
+                Tahap {idx + 1}
               </span>
             </div>
           ))}
@@ -1394,84 +1458,6 @@ export default function SupervisionDetail({ user }: { user: User }) {
             </div>
           )}
 
-          {activeStage === 2 && (
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-xl font-bold">Tahap 2: Telaah ATP</h3>
-                  {supervision.stage1_date && (
-                    <p className="text-xs text-zinc-400 mt-1 flex items-center">
-                      <Calendar size={12} className="mr-1" />
-                      Jadwal (Tahap 1 Administrasi): {new Date(supervision.stage1_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
-                  )}
-                </div>
-                <div className="text-right flex flex-col items-end gap-2">
-                  <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Skor Tahap</p>
-                  <p className="text-2xl font-bold text-emerald-600">{calculateScore(2, stage2).toFixed(1)}%</p>
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => generateStagePDF(2)}
-                      className="flex items-center space-x-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
-                    >
-                      <Download size={12} />
-                      <span>PDF</span>
-                    </button>
-                    <button 
-                      onClick={() => generateStageWord(2)}
-                      className="flex items-center space-x-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
-                    >
-                      <Download size={12} />
-                      <span>Word</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-6">
-                {STAGE2_INSTRUMENTS.map((item) => (
-                  <div key={item.id} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
-                    <div className="flex items-center space-x-4 mb-4">
-                      <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-400">
-                        {item.id}
-                      </div>
-                      <span className="font-bold text-zinc-800">{item.text}</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-4">
-                      {[1, 2, 3, 4].map((val) => (
-                        <button
-                          key={val}
-                          onClick={() => setStage2({ ...stage2, items: { ...stage2.items, [item.id]: val } })}
-                          className={`py-3 rounded-xl border font-bold transition-all ${stage2.items[item.id] === val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
-                        >
-                          {val}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-8">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Catatan Telaah ATP</label>
-                  <button 
-                    onClick={generateAINotes}
-                    disabled={isGenerating}
-                    className="flex items-center space-x-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-50"
-                  >
-                    <Sparkles size={12} />
-                    <span>{isGenerating ? 'Mengenerate...' : 'Generate dengan AI'}</span>
-                  </button>
-                </div>
-                <textarea 
-                  value={stage2.notes}
-                  onChange={(e) => setStage2({ ...stage2, notes: e.target.value })}
-                  className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[120px]"
-                  placeholder="Berikan catatan perbaikan ATP..."
-                />
-              </div>
-            </div>
-          )}
-
           {activeStage === 3 && (
             <div className="p-8">
               <div className="flex items-center justify-between mb-8">
@@ -1509,25 +1495,131 @@ export default function SupervisionDetail({ user }: { user: User }) {
                 {STAGE3_INSTRUMENTS.map((item) => (
                   <div key={item.id} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
                     <div className="flex items-center space-x-4 mb-4">
-                      <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-400">
+                      <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-400 flex-shrink-0">
                         {item.id}
                       </div>
                       <span className="font-bold text-zinc-800">{item.text}</span>
                     </div>
-                    <div className="grid grid-cols-4 gap-4">
-                      {[1, 2, 3, 4].map((val) => (
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      {[
+                        { val: 4, label: "Sangat Baik (4)" },
+                        { val: 3, label: "Baik (3)" },
+                        { val: 2, label: "Kurang (2)" },
+                        { val: 1, label: "Sangat Kurang (1)" },
+                        { val: 0, label: "Tidak Ada (0)" }
+                      ].map((opt) => (
                         <button
-                          key={val}
-                          onClick={() => setStage3({ ...stage3, items: { ...stage3.items, [item.id]: val } })}
-                          className={`py-3 rounded-xl border font-bold transition-all ${stage3.items[item.id] === val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
+                          key={opt.val}
+                          onClick={() => setStage3({ ...stage3, items: { ...stage3.items, [item.id]: opt.val } })}
+                          className={`py-2 px-1 rounded-xl border text-xs font-bold text-center transition-all ${stage3.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
                         >
-                          {val}
+                          {opt.label}
                         </button>
                       ))}
+                    </div>
+                    <div className="mt-4">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">Komentar Kritis / Catatan Khusus</label>
+                      <input 
+                        type="text"
+                        value={(stage3.items[item.id + '_comment'] as string) || ""}
+                        onChange={(e) => setStage3({ 
+                          ...stage3, 
+                          items: { 
+                            ...stage3.items, 
+                            [item.id + '_comment']: e.target.value 
+                          } 
+                        })}
+                        placeholder="Tuliskan komentar kritis atau catatan khusus untuk aspek ini..."
+                        className="w-full px-4 py-2.5 text-xs bg-white border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-zinc-700"
+                      />
                     </div>
                   </div>
                 ))}
               </div>
+
+              <div className="mt-8 space-y-6 bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100/50">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg">
+                    <MessageSquare size={16} />
+                  </div>
+                  <h4 className="text-sm font-black text-zinc-800">Catatan Khusus Kualitatif (Pertanyaan 16, 17, & 18)</h4>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-zinc-600 block mb-1">Pertanyaan 16: Kekuatan / Kelebihan Modul Ajar yang Ditelaah</label>
+                    <textarea 
+                      value={(stage3.items["q16"] as string) || ""}
+                      onChange={(e) => {
+                        const qVal = e.target.value;
+                        const updatedItems = { ...stage3.items, q16: qVal };
+                        const q17Text = (stage3.items["q17"] as string) || "";
+                        const q18Text = (stage3.items["q18"] as string) || "";
+                        const mergedNotes = `Kekuatan / Kelebihan Modul Ajar yang Ditelaah:
+${qVal}
+
+Kelemahan / Masukan Perbaikan:
+${q17Text}
+
+Saran Penyempurnaan / Rencana Tindak Lanjut:
+${q18Text}`;
+                        setStage3({ ...stage3, items: updatedItems, notes: mergedNotes });
+                      }}
+                      className="w-full p-3 bg-white border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs min-h-[70px]"
+                      placeholder="Tuliskan kekuatan/kelebihan modul ajar..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-zinc-600 block mb-1">Pertanyaan 17: Kelemahan / Masukan Perbaikan untuk Guru</label>
+                    <textarea 
+                      value={(stage3.items["q17"] as string) || ""}
+                      onChange={(e) => {
+                        const qVal = e.target.value;
+                        const updatedItems = { ...stage3.items, q17: qVal };
+                        const q16Text = (stage3.items["q16"] as string) || "";
+                        const q18Text = (stage3.items["q18"] as string) || "";
+                        const mergedNotes = `Kekuatan / Kelebihan Modul Ajar yang Ditelaah:
+${q16Text}
+
+Kelemahan / Masukan Perbaikan:
+${qVal}
+
+Saran Penyempurnaan / Rencana Tindak Lanjut:
+${q18Text}`;
+                        setStage3({ ...stage3, items: updatedItems, notes: mergedNotes });
+                      }}
+                      className="w-full p-3 bg-white border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs min-h-[70px]"
+                      placeholder="Tuliskan kelemahan/masukan perbaikan..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-zinc-600 block mb-1">Pertanyaan 18: Saran Penyempurnaan / Rencana Tindak Lanjut (RTL)</label>
+                    <textarea 
+                      value={(stage3.items["q18"] as string) || ""}
+                      onChange={(e) => {
+                        const qVal = e.target.value;
+                        const updatedItems = { ...stage3.items, q18: qVal };
+                        const q16Text = (stage3.items["q16"] as string) || "";
+                        const q17Text = (stage3.items["q17"] as string) || "";
+                        const mergedNotes = `Kekuatan / Kelebihan Modul Ajar yang Ditelaah:
+${q16Text}
+
+Kelemahan / Masukan Perbaikan:
+${q17Text}
+
+Saran Penyempurnaan / Rencana Tindak Lanjut:
+${qVal}`;
+                        setStage3({ ...stage3, items: updatedItems, notes: mergedNotes });
+                      }}
+                      className="w-full p-3 bg-white border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs min-h-[70px]"
+                      placeholder="Tuliskan saran penyempurnaan atau tindak lanjut..."
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-8">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Catatan Telaah Modul Ajar</label>
@@ -1543,7 +1635,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
                 <textarea 
                   value={stage3.notes}
                   onChange={(e) => setStage3({ ...stage3, notes: e.target.value })}
-                  className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[120px]"
+                  className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[150px]"
                   placeholder="Berikan catatan perbaikan Modul Ajar..."
                 />
               </div>
@@ -1669,28 +1761,50 @@ export default function SupervisionDetail({ user }: { user: User }) {
                   </div>
                 </div>
               </div>
-              <div className="space-y-6">
-                {STAGE4_INSTRUMENTS.map((item) => (
-                  <div key={item.id} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
-                    <div className="flex items-center space-x-4 mb-4">
-                      <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-400">
-                        {item.id}
+              <div className="space-y-8">
+                {(() => {
+                  const grouped: { [key: string]: typeof STAGE4_INSTRUMENTS } = {};
+                  STAGE4_INSTRUMENTS.forEach(item => {
+                    const cat = item.category || "Umum";
+                    if (!grouped[cat]) grouped[cat] = [];
+                    grouped[cat].push(item);
+                  });
+                  return Object.entries(grouped).map(([category, items]) => (
+                    <div key={category} className="space-y-4">
+                      <h4 className="text-sm font-black text-zinc-900 border-b border-zinc-100 pb-2 mt-8 mb-4 tracking-wide">
+                        {category}
+                      </h4>
+                      <div className="space-y-4">
+                        {items.map((item) => (
+                          <div key={item.id} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
+                            <div className="flex items-start gap-4 mb-4">
+                              <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-400 shrink-0">
+                                {item.id}
+                              </div>
+                              <span className="font-bold text-zinc-800 leading-snug">{item.text}</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                              {[
+                                { val: 4, label: "4 - Sesuai & Efektif" },
+                                { val: 3, label: "3 - Efektif (Sebagian Besar)" },
+                                { val: 2, label: "2 - Belum Efektif" },
+                                { val: 1, label: "1 - Tidak Efektif" }
+                              ].map((opt) => (
+                                <button
+                                  key={opt.val}
+                                  onClick={() => setStage5({ ...stage5, items: { ...stage5.items, [item.id]: opt.val } })}
+                                  className={`py-3 px-2 rounded-xl border text-[10px] font-black uppercase tracking-tighter text-center transition-all ${stage5.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <span className="font-bold text-zinc-800">{item.text}</span>
                     </div>
-                    <div className="grid grid-cols-4 gap-4">
-                      {[1, 2, 3, 4].map((val) => (
-                        <button
-                          key={val}
-                          onClick={() => setStage5({ ...stage5, items: { ...stage5.items, [item.id]: val } })}
-                          className={`py-3 rounded-xl border font-bold transition-all ${stage5.items[item.id] === val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
-                        >
-                          {val}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
               <div className="mt-8">
                 <div className="flex items-center justify-between mb-2">
@@ -1709,6 +1823,91 @@ export default function SupervisionDetail({ user }: { user: User }) {
                   onChange={(e) => setStage5({ ...stage5, notes: e.target.value })}
                   className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[120px]"
                   placeholder="Input catatan kejadian penting selama observasi..."
+                />
+              </div>
+            </div>
+          )}
+
+          {activeStage === 2 && (
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-bold">Tahap 5: Penilaian Hasil Belajar Peserta Didik</h3>
+                  {supervision.stage3_date && (
+                    <p className="text-xs text-zinc-400 mt-1 flex items-center">
+                      <Calendar size={12} className="mr-1" />
+                      Jadwal (Tahap 3 Pelaksanaan): {new Date(supervision.stage3_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  )}
+                  <p className="text-xs text-zinc-400 mt-1">Supervisi keterisian dokumen/aspek pembinaan penilaian hasil belajar siswa.</p>
+                </div>
+                <div className="text-right flex flex-col items-end gap-2">
+                  <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Skor Tahap</p>
+                  <p className="text-2xl font-bold text-emerald-600">{calculateScore(2, stage2).toFixed(1)}%</p>
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => generateStagePDF(2)}
+                      className="flex items-center space-x-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                    >
+                      <Download size={12} />
+                      <span>PDF</span>
+                    </button>
+                    <button 
+                      onClick={() => generateStageWord(2)}
+                      className="flex items-center space-x-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                      <Download size={12} />
+                      <span>Word</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-6">
+                {STAGE2_INSTRUMENTS.map((item) => (
+                  <div key={item.id} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-400 shrink-0 mt-0.5">
+                        {item.id}
+                      </div>
+                      <span className="font-bold text-zinc-800 leading-snug">{item.text}</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      {[
+                        { val: 4, label: "4 - Lengkap" },
+                        { val: 3, label: "3 - Sebagian Besar" },
+                        { val: 2, label: "2 - Sebagian Kecil" },
+                        { val: 1, label: "1 - Belum Terisi" },
+                        { val: 0, label: "0 - Tidak Ada" }
+                      ].map((opt) => (
+                        <button
+                          key={opt.val}
+                          onClick={() => setStage2({ ...stage2, items: { ...stage2.items, [item.id]: opt.val } })}
+                          className={`py-3 px-1 rounded-xl border text-[10px] font-black uppercase tracking-tighter text-center transition-all ${stage2.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Catatan & Tindak Lanjut Penilaian Hasil Belajar</label>
+                  <button 
+                    onClick={generateAINotes}
+                    disabled={isGenerating}
+                    className="flex items-center space-x-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-50"
+                  >
+                    <Sparkles size={12} />
+                    <span>{isGenerating ? 'Mengenerate...' : 'Generate dengan AI'}</span>
+                  </button>
+                </div>
+                <textarea 
+                  value={stage2.notes}
+                  onChange={(e) => setStage2({ ...stage2, notes: e.target.value })}
+                  className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all min-h-[120px]"
+                  placeholder="Berikan catatan, kelemahan, saran perbaikan, atau tindak lanjut terkait penilaian..."
                 />
               </div>
             </div>
@@ -1937,16 +2136,16 @@ export default function SupervisionDetail({ user }: { user: User }) {
           <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">S1: {calculateScore(1, stage1).toFixed(0)}%</span>
         </div>
         <div className="flex items-center space-x-2 whitespace-nowrap">
-          <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.5)]"></div>
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">S2: {calculateScore(2, stage2).toFixed(0)}%</span>
-        </div>
-        <div className="flex items-center space-x-2 whitespace-nowrap">
           <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_5px_rgba(245,158,11,0.5)]"></div>
           <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">S3: {calculateScore(3, stage3).toFixed(0)}%</span>
         </div>
         <div className="flex items-center space-x-2 whitespace-nowrap">
           <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_5px_rgba(168,85,247,0.5)]"></div>
           <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">S5: {calculateScore(5, stage5).toFixed(0)}%</span>
+        </div>
+        <div className="flex items-center space-x-2 whitespace-nowrap">
+          <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.5)]"></div>
+          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">S2: {calculateScore(2, stage2).toFixed(0)}%</span>
         </div>
         <div className="flex items-center space-x-2 whitespace-nowrap">
           <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.5)]"></div>
@@ -1989,42 +2188,35 @@ export default function SupervisionDetail({ user }: { user: User }) {
                   <div className="flex items-start space-x-4">
                     <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold flex-shrink-0">2</div>
                     <div>
-                      <h4 className="font-bold text-zinc-900">Tahap 2: Telaah ATP</h4>
-                      <p className="text-sm text-zinc-500 mt-1">Lakukan penelaahan terhadap Alur Tujuan Pembelajaran (ATP). Berikan skor 1-4 untuk setiap kriteria yang ada.</p>
+                      <h4 className="font-bold text-zinc-900">Tahap 2: Telaah Modul Ajar</h4>
+                      <p className="text-sm text-zinc-500 mt-1">Lakukan penelaahan terhadap Modul Ajar yang disusun guru. Berikan skor 1-4 untuk setiap kriteria.</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
                     <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold flex-shrink-0">3</div>
                     <div>
-                      <h4 className="font-bold text-zinc-900">Tahap 3: Telaah Modul Ajar</h4>
-                      <p className="text-sm text-zinc-500 mt-1">Lakukan penelaahan terhadap Modul Ajar yang disusun guru. Berikan skor 1-4 untuk setiap kriteria.</p>
+                      <h4 className="font-bold text-zinc-900">Tahap 3: Pra-Observasi</h4>
+                      <p className="text-sm text-zinc-500 mt-1">Lakukan wawancara coaching sebelum observasi kelas. Catat poin-poin penting kesepakatan.</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
                     <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold flex-shrink-0">4</div>
                     <div>
-                      <h4 className="font-bold text-zinc-900">Tahap 4: Pra-Observasi</h4>
-                      <p className="text-sm text-zinc-500 mt-1">Lakukan wawancara coaching sebelum observasi kelas. Catat poin-poin penting kesepakatan.</p>
+                      <h4 className="font-bold text-zinc-900">Tahap 4: Pelaksanaan Pembelajaran</h4>
+                      <p className="text-sm text-zinc-500 mt-1">Observasi langsung di kelas. Gunakan timer untuk mencatat durasi. Berikan skor 1-4 berdasarkan pengamatan nyata.</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
                     <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold flex-shrink-0">5</div>
                     <div>
-                      <h4 className="font-bold text-zinc-900">Tahap 5: Pelaksanaan Pembelajaran</h4>
-                      <p className="text-sm text-zinc-500 mt-1">Observasi langsung di kelas. Gunakan timer untuk mencatat durasi. Berikan skor 1-4 berdasarkan pengamatan nyata.</p>
+                      <h4 className="font-bold text-zinc-900">Tahap 5: Pasca-Observasi</h4>
+                      <p className="text-sm text-zinc-500 mt-1">Lakukan wawancara coaching setelah observasi kelas. Diskusikan hasil dan tindak lanjut.</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
                     <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold flex-shrink-0">6</div>
                     <div>
-                      <h4 className="font-bold text-zinc-900">Tahap 6: Pasca-Observasi</h4>
-                      <p className="text-sm text-zinc-500 mt-1">Lakukan wawancara coaching setelah observasi kelas. Diskusikan hasil dan tindak lanjut.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold flex-shrink-0">7</div>
-                    <div>
-                      <h4 className="font-bold text-zinc-900">Tahap 7: Refleksi & RTL</h4>
+                      <h4 className="font-bold text-zinc-900">Tahap 6: Refleksi & RTL</h4>
                       <p className="text-sm text-zinc-500 mt-1">Diskusikan hasil supervisi dengan guru. Isi refleksi dan Rencana Tindak Lanjut (RTL). Gunakan AI untuk membantu merumuskan RTL.</p>
                     </div>
                   </div>

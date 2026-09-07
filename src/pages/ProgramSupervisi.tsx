@@ -318,14 +318,13 @@ export default function ProgramSupervisi({ user }: { user: User }) {
             <div className="flex justify-between"><span>DAFTAR ISI</span><span>iii</span></div>
             <div className="flex justify-between mt-4"><span>BAB I PENDAHULUAN</span><span>1</span></div>
             <div className="pl-6 space-y-2">
-              <div className="flex justify-between"><span>A. Latar Belakang</span><span>1</span></div>
-              <div className="flex justify-between"><span>B. Definisi Supervisi</span><span>2</span></div>
-              <div className="flex justify-between"><span>C. Dasar Hukum</span><span>2</span></div>
-              <div className="flex justify-between"><span>D. Prinsip Supervisi</span><span>3</span></div>
-              <div className="flex justify-between"><span>E. Jenis-Jenis Supervisi</span><span>4</span></div>
-              <div className="flex justify-between"><span>F. Tujuan Supervisi</span><span>5</span></div>
-              <div className="flex justify-between"><span>G. Ruang Lingkup Supervisi</span><span>6</span></div>
-              <div className="flex justify-between"><span>H. Mekanisme Supervisi</span><span>6</span></div>
+              <div className="flex justify-between"><span>A. Latar Belakang & Perubahan Paradigma</span><span>1</span></div>
+              <div className="flex justify-between"><span>B. Tujuan Utama Supervisi Akademik</span><span>2</span></div>
+              <div className="flex justify-between"><span>C. Prinsip Utama Pembelajaran Mendalam</span><span>2</span></div>
+              <div className="flex justify-between"><span>D. Tiga Tahap Pengalaman Belajar Peserta Didik</span><span>3</span></div>
+              <div className="flex justify-between"><span>E. Komponen Utama Instrumen & Fokus Pengamatan</span><span>4</span></div>
+              <div className="flex justify-between"><span>F. Karakteristik Indikator Penilaian</span><span>5</span></div>
+              <div className="flex justify-between"><span>G. Dasar Hukum</span><span>5</span></div>
             </div>
             <div className="flex justify-between mt-4"><span>BAB II PELAKSANAAN SUPERVISI PEMBELAJARAN</span><span>8</span></div>
             <div className="pl-6 space-y-2">

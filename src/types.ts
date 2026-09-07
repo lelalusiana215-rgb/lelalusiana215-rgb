@@ -90,4 +90,7 @@ export interface StageData {
   items: { [key: string]: number | boolean | string };
   notes: string;
   score?: number;
+  kelebihan?: string;
+  kekurangan?: string;
+  rekomendasi?: string;
 }
