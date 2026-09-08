@@ -1354,15 +1354,15 @@ export default function SupervisionDetail({ user }: { user: User }) {
       </div>
 
       {/* Stage Navigation */}
-      <div className="flex items-center space-x-2 bg-white p-2 rounded-2xl border border-black/5 shadow-sm overflow-x-auto no-scrollbar print:hidden">
+      <div className="flex items-center space-x-2 bg-white p-2.5 rounded-3xl border border-zinc-200/60 shadow-sm overflow-x-auto no-scrollbar print:hidden">
         {stages.map((s) => (
           <button
             key={s.id}
             onClick={() => setActiveStage(s.id)}
-            className={`flex-1 min-w-[140px] flex items-center justify-center space-x-2 py-3 rounded-xl transition-all ${activeStage === s.id ? 'bg-[#141414] text-white shadow-lg' : 'text-zinc-400 hover:bg-zinc-50'}`}
+            className={`flex-shrink-0 flex items-center justify-center space-x-2.5 px-6 py-3.5 rounded-2xl transition-all duration-200 ${activeStage === s.id ? 'bg-[#141414] text-white shadow-xl shadow-black/10' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800'}`}
           >
-            {s.icon}
-            <span className="text-sm font-bold whitespace-nowrap">{s.name}</span>
+            <span className={activeStage === s.id ? 'text-white' : 'text-zinc-400'}>{s.icon}</span>
+            <span className="text-xs md:text-sm font-black whitespace-nowrap">{s.name}</span>
           </button>
         ))}
       </div>
@@ -1418,7 +1418,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
                       </div>
                       <span className="font-bold text-zinc-800">{item.text}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       {[
                         { val: 0, label: "Tidak Ada (0)" },
                         { val: 1, label: "Ada tetapi tidak sesuai (1)" },
@@ -1427,7 +1427,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
                         <button
                           key={opt.val}
                           onClick={() => setStage1({ ...stage1, items: { ...stage1.items, [item.id]: opt.val } })}
-                          className={`py-3 rounded-xl border font-bold text-[10px] uppercase tracking-tighter transition-all ${stage1.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
+                          className={`py-3 px-3 rounded-2xl border text-xs font-black transition-all duration-200 ${stage1.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/10' : 'bg-white border-zinc-200/80 text-zinc-500 hover:border-emerald-300 hover:text-emerald-600'}`}
                         >
                           {opt.label}
                         </button>
@@ -1500,7 +1500,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
                       </div>
                       <span className="font-bold text-zinc-800">{item.text}</span>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
                       {[
                         { val: 4, label: "Sangat Baik (4)" },
                         { val: 3, label: "Baik (3)" },
@@ -1511,7 +1511,7 @@ export default function SupervisionDetail({ user }: { user: User }) {
                         <button
                           key={opt.val}
                           onClick={() => setStage3({ ...stage3, items: { ...stage3.items, [item.id]: opt.val } })}
-                          className={`py-2 px-1 rounded-xl border text-xs font-bold text-center transition-all ${stage3.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
+                          className={`py-3 px-2 rounded-2xl border text-xs font-black transition-all duration-200 ${stage3.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/10' : 'bg-white border-zinc-200/80 text-zinc-500 hover:border-emerald-300 hover:text-emerald-600'}`}
                         >
                           {opt.label}
                         </button>
@@ -1783,7 +1783,7 @@ ${qVal}`;
                               </div>
                               <span className="font-bold text-zinc-800 leading-snug">{item.text}</span>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                               {[
                                 { val: 4, label: "4 - Sesuai & Efektif" },
                                 { val: 3, label: "3 - Efektif (Sebagian Besar)" },
@@ -1793,7 +1793,7 @@ ${qVal}`;
                                 <button
                                   key={opt.val}
                                   onClick={() => setStage5({ ...stage5, items: { ...stage5.items, [item.id]: opt.val } })}
-                                  className={`py-3 px-2 rounded-xl border text-[10px] font-black uppercase tracking-tighter text-center transition-all ${stage5.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
+                                  className={`py-3 px-3 rounded-2xl border text-xs font-black transition-all duration-200 ${stage5.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/10' : 'bg-white border-zinc-200/80 text-zinc-500 hover:border-emerald-300 hover:text-emerald-600'}`}
                                 >
                                   {opt.label}
                                 </button>
@@ -1871,7 +1871,7 @@ ${qVal}`;
                       </div>
                       <span className="font-bold text-zinc-800 leading-snug">{item.text}</span>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
                       {[
                         { val: 4, label: "4 - Lengkap" },
                         { val: 3, label: "3 - Sebagian Besar" },
@@ -1882,7 +1882,7 @@ ${qVal}`;
                         <button
                           key={opt.val}
                           onClick={() => setStage2({ ...stage2, items: { ...stage2.items, [item.id]: opt.val } })}
-                          className={`py-3 px-1 rounded-xl border text-[10px] font-black uppercase tracking-tighter text-center transition-all ${stage2.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-zinc-200 text-zinc-400 hover:border-emerald-200'}`}
+                          className={`py-3 px-2 rounded-2xl border text-xs font-black transition-all duration-200 ${stage2.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/10' : 'bg-white border-zinc-200/80 text-zinc-500 hover:border-emerald-300 hover:text-emerald-600'}`}
                         >
                           {opt.label}
                         </button>
@@ -2003,25 +2003,25 @@ ${qVal}`;
                     </p>
                   )}
                 </div>
-                <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 flex items-center gap-6">
-                  <div className="text-right">
+                <div className="bg-zinc-50 p-5 rounded-3xl border border-zinc-200/60 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 shrink-0">
+                  <div className="text-center sm:text-right">
                     <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold mb-1">Estimasi Skor Akhir</p>
                     <p className="text-3xl font-black text-emerald-600 tabular-nums">
                       {((calculateScore(1, stage1) + calculateScore(2, stage2) + calculateScore(3, stage3) + calculateScore(5, stage5) + calculateScore(7, stage7)) / 5).toFixed(1)}%
                     </p>
                   </div>
-                  <div className="h-10 w-px bg-zinc-200" />
-                  <div className="flex flex-col gap-2">
+                  <div className="hidden sm:block h-10 w-px bg-zinc-200" />
+                  <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto justify-center">
                     <button 
                       onClick={() => generateStagePDF(7)}
-                      className="flex items-center space-x-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition-all"
+                      className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 text-xs font-bold text-emerald-600 bg-white sm:bg-transparent border border-emerald-100 sm:border-transparent hover:bg-emerald-50 px-4 py-2 rounded-xl transition-all"
                     >
                       <Download size={14} />
                       <span>PDF</span>
                     </button>
                     <button 
                       onClick={() => generateStageWord(7)}
-                      className="flex items-center space-x-2 text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all"
+                      className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 text-xs font-bold text-blue-600 bg-white sm:bg-transparent border border-blue-100 sm:border-transparent hover:bg-blue-50 px-4 py-2 rounded-xl transition-all"
                     >
                       <Download size={14} />
                       <span>Word</span>
@@ -2047,14 +2047,19 @@ ${qVal}`;
                             <span className="text-sm font-bold text-zinc-700 leading-tight">{item.text}</span>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          {[1, 2, 3, 4].map((val) => (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {[
+                            { val: 4, label: "4 - Sangat Sesuai" },
+                            { val: 3, label: "3 - Sesuai" },
+                            { val: 2, label: "2 - Cukup Sesuai" },
+                            { val: 1, label: "1 - Kurang Sesuai" }
+                          ].map((opt) => (
                             <button
-                              key={val}
-                              onClick={() => setStage7({ ...stage7, items: { ...stage7.items, [item.id]: val } })}
-                              className={`flex-1 py-2.5 rounded-xl border-2 text-xs font-black transition-all ${stage7.items[item.id] === val ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-zinc-50 border-transparent text-zinc-400 hover:border-zinc-200'}`}
+                              key={opt.val}
+                              onClick={() => setStage7({ ...stage7, items: { ...stage7.items, [item.id]: opt.val } })}
+                              className={`py-3 px-2 rounded-2xl border text-xs font-black transition-all duration-200 ${stage7.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/10' : 'bg-white border-zinc-200/80 text-zinc-500 hover:border-emerald-300 hover:text-emerald-600'}`}
                             >
-                              {val}
+                              {opt.label}
                             </button>
                           ))}
                         </div>
