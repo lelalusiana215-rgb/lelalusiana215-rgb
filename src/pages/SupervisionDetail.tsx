@@ -2036,18 +2036,18 @@ ${qVal}`;
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Instrumen Refleksi</h4>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-6">
                     {STAGE5_INSTRUMENTS.map((item) => (
-                      <div key={item.id} className="group p-5 bg-white rounded-2xl border border-zinc-100 hover:border-emerald-200 hover:shadow-md transition-all">
+                      <div key={item.id} className="group p-6 bg-white rounded-2xl border border-zinc-100 hover:border-emerald-200 hover:shadow-md transition-all">
                         <div className="flex items-start justify-between mb-4 gap-4">
                           <div className="flex items-start gap-3">
-                            <div className="w-6 h-6 rounded-md bg-zinc-50 border border-zinc-100 flex items-center justify-center text-[10px] font-bold text-zinc-400 group-hover:bg-emerald-50 group-hover:text-emerald-500 transition-colors shrink-0 mt-0.5">
-                              {item.id}
+                            <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-200/80 flex items-center justify-center text-[10px] font-bold text-zinc-400 group-hover:bg-emerald-50 group-hover:text-emerald-500 transition-colors shrink-0 mt-0.5">
+                              {item.id === "identifikasi_masalah" ? "1" : item.id === "rekomendasi" ? "2" : item.id === "rtl" ? "3" : item.id === "ukuran_keberhasilan" ? "4" : "5"}
                             </div>
-                            <span className="text-sm font-bold text-zinc-700 leading-tight">{item.text}</span>
+                            <span className="text-base font-bold text-zinc-800 leading-snug">{item.text}</span>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                           {[
                             { val: 4, label: "4 - Sangat Sesuai" },
                             { val: 3, label: "3 - Sesuai" },
@@ -2057,7 +2057,7 @@ ${qVal}`;
                             <button
                               key={opt.val}
                               onClick={() => setStage7({ ...stage7, items: { ...stage7.items, [item.id]: opt.val } })}
-                              className={`py-3 px-2 rounded-2xl border text-xs font-black transition-all duration-200 ${stage7.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/10' : 'bg-white border-zinc-200/80 text-zinc-500 hover:border-emerald-300 hover:text-emerald-600'}`}
+                              className={`py-3.5 px-3 rounded-2xl border text-[10px] sm:text-xs font-black transition-all duration-200 ${stage7.items[item.id] === opt.val ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/10' : 'bg-white border-zinc-200/80 text-zinc-500 hover:border-emerald-300 hover:text-emerald-600'}`}
                             >
                               {opt.label}
                             </button>
