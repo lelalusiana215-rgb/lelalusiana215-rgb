@@ -19,6 +19,7 @@ import AdminPanel from "./pages/AdminPanel";
 import ProgramSupervisi from "./pages/ProgramSupervisi";
 import SupervisionSchedule from "./pages/SupervisionSchedule";
 import LandingPage from "./pages/LandingPage";
+import TemplateInstrumen from "./pages/TemplateInstrumen";
 
 function Layout({ children, user, onLogout }: { children: React.ReactNode, user: User, onLogout: () => void }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -47,6 +48,7 @@ function Layout({ children, user, onLogout }: { children: React.ReactNode, user:
         <nav className="flex-1 py-6 px-4 space-y-2">
           <SidebarItem icon={<LayoutDashboard size={20} />} label="Dashboard" to="/dashboard" active={location.pathname === '/dashboard'} collapsed={!isSidebarOpen} />
           <SidebarItem icon={<ClipboardCheck size={20} />} label="Supervisi" to="/supervisi" active={location.pathname.startsWith('/supervisi')} collapsed={!isSidebarOpen} />
+          <SidebarItem icon={<FileText size={20} />} label="Template Instrumen" to="/template-instrumen" active={location.pathname === '/template-instrumen'} collapsed={!isSidebarOpen} />
           {user.email === 'lelalusiana215@gmail.com' && (
             <SidebarItem icon={<ShieldCheck size={20} />} label="Admin Panel" to="/admin" active={location.pathname === '/admin'} collapsed={!isSidebarOpen} />
           )}
@@ -402,6 +404,7 @@ export default function App() {
                   <Route path="/dashboard" element={<Dashboard user={user} />} />
                   <Route path="/supervisi" element={<SupervisionList user={user} />} />
                   <Route path="/supervisi/:id" element={<SupervisionDetail user={user} />} />
+                  <Route path="/template-instrumen" element={<TemplateInstrumen user={user} />} />
                   <Route path="/admin" element={user.email === 'lelalusiana215@gmail.com' ? <AdminPanel user={user} /> : <Navigate to="/dashboard" />} />
                   <Route path="/guru" element={user.role === 'KEPALA_SEKOLAH' ? <TeacherManagement user={user} /> : <Navigate to="/dashboard" />} />
                   <Route path="/profil" element={<Profile user={user} />} />

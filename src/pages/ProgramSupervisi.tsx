@@ -15,6 +15,7 @@ export default function ProgramSupervisi({ user }: { user: User }) {
   const [school, setSchool] = useState<School | null>(null);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -86,56 +87,98 @@ export default function ProgramSupervisi({ user }: { user: User }) {
   const academicYear = school?.academic_year || `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`;
   const printDate = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
-  const generateWord = () => {
-    const element = document.getElementById("program-supervisi-content");
-    if (!element) return;
-    
-    // Create a clone to manipulate
-    const clone = element.cloneNode(true) as HTMLElement;
-    
-    // Remove print:hidden elements from clone
-    const hiddenElements = clone.querySelectorAll('.print\\:hidden');
-    hiddenElements.forEach(el => el.parentNode?.removeChild(el));
+  const getBase64ImageFromUrl = async (imageUrl: string): Promise<string> => {
+    try {
+      const res = await fetch(imageUrl);
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error("Error converting image to base64:", e);
+      return imageUrl;
+    }
+  };
 
-    // Handle page breaks for Word
-    const pageBreakElements = clone.querySelectorAll('.print\\:break-after-page');
-    pageBreakElements.forEach(el => {
-      el.classList.add('page-break');
-    });
-    
-    const html = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head>
-        <meta charset='utf-8'>
-        <title>Program Supervisi</title>
-        <style>
-          body { font-family: 'Times New Roman', serif; }
-          h1, h2, h3, h4, h5, h6 { text-align: center; }
-          table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-          th, td { border: 1px solid black; padding: 8px; }
-          .text-center { text-align: center; }
-          .font-bold { font-weight: bold; }
-          .mb-4 { margin-bottom: 16px; }
-          .mt-8 { margin-top: 32px; }
-          .page-break { page-break-after: always; }
-        </style>
-      </head>
-      <body>
-        ${clone.innerHTML}
-      </body>
-      </html>
-    `;
-    
-    const blob = new Blob(['\ufeff', html], {
-      type: 'application/msword'
-    });
-    
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'Program_Supervisi.doc';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const generateWord = async () => {
+    setIsGeneratingWord(true);
+    try {
+      const element = document.getElementById("program-supervisi-content");
+      if (!element) return;
+      
+      // Convert logos to base64 so MS Word renders them without failing
+      let govLogoBase64 = "";
+      let schoolLogoBase64 = "";
+      if (school.logo_gov) {
+        govLogoBase64 = await getBase64ImageFromUrl(school.logo_gov);
+      }
+      if (school.logo_school) {
+        schoolLogoBase64 = await getBase64ImageFromUrl(school.logo_school);
+      }
+
+      const clone = element.cloneNode(true) as HTMLElement;
+      
+      const imgs = clone.querySelectorAll('img');
+      imgs.forEach((img, idx) => {
+        if (idx === 0 && govLogoBase64) img.src = govLogoBase64;
+        if (idx === 1 && schoolLogoBase64) img.src = schoolLogoBase64;
+        if (!img.src.startsWith('data:')) {
+          if (school.logo_gov && img.alt.includes('Pemerintah')) img.src = govLogoBase64;
+          if (school.logo_school && img.alt.includes('Sekolah')) img.src = schoolLogoBase64;
+        }
+      });
+      
+      // Remove print:hidden elements from clone
+      const hiddenElements = clone.querySelectorAll('.print\\:hidden');
+      hiddenElements.forEach(el => el.parentNode?.removeChild(el));
+
+      // Handle page breaks for Word
+      const pageBreakElements = clone.querySelectorAll('.print\\:break-after-page');
+      pageBreakElements.forEach(el => {
+        el.classList.add('page-break');
+      });
+      
+      const html = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='utf-8'>
+          <title>Program Supervisi</title>
+          <style>
+            body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; color: black; }
+            h1, h2, h3, h4, h5, h6 { text-align: center; font-family: 'Times New Roman', serif; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 20px; font-family: 'Times New Roman', serif; }
+            th, td { border: 1px solid black; padding: 6px 8px; font-family: 'Times New Roman', serif; vertical-align: top; }
+            .text-center { text-align: center; }
+            .font-bold { font-weight: bold; }
+            .mb-4 { margin-bottom: 16px; }
+            .mt-8 { margin-top: 32px; }
+            .page-break { page-break-after: always; mso-break-type: section-break; }
+          </style>
+        </head>
+        <body>
+          ${clone.innerHTML}
+        </body>
+        </html>
+      `;
+      
+      const blob = new Blob(['\ufeff', html], {
+        type: 'application/msword'
+      });
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `Program_Supervisi_${school.name.replace(/\s+/g, '_')}.doc`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error("Error generating Word document:", e);
+      alert("Gagal mengunduh dokumen Word. Silakan coba lagi.");
+    } finally {
+      setIsGeneratingWord(false);
+    }
   };
 
   return (
@@ -154,14 +197,15 @@ export default function ProgramSupervisi({ user }: { user: User }) {
             className="flex items-center space-x-2 bg-white border border-black/5 text-zinc-700 px-4 py-2 rounded-xl shadow-sm hover:bg-zinc-50 transition-all font-bold text-sm"
           >
             <Printer size={18} />
-            <span>Simpan PDF / Print</span>
+            <span>Simpan PDF / Print Langsung</span>
           </button>
           <button 
             onClick={generateWord}
-            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-xl shadow-sm hover:bg-blue-700 transition-all font-bold text-sm"
+            disabled={isGeneratingWord}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-xl shadow-sm hover:bg-blue-700 transition-all font-bold text-sm disabled:opacity-50"
           >
-            <Download size={18} />
-            <span>Simpan Word</span>
+            <Download size={18} className={isGeneratingWord ? 'animate-bounce' : ''} />
+            <span>{isGeneratingWord ? 'Memproses Word...' : 'Simpan Word (.doc)'}</span>
           </button>
         </div>
       </div>
@@ -170,7 +214,7 @@ export default function ProgramSupervisi({ user }: { user: User }) {
       <div id="program-supervisi-content" className="max-w-[210mm] mx-auto mt-8 bg-white shadow-xl print:shadow-none print:mt-0 print:max-w-none">
         
         {/* COVER PAGE */}
-        <div className="p-[20mm] min-h-[297mm] flex flex-col items-center justify-center print:p-0 print:break-after-page text-black font-serif text-center relative">
+        <div className="p-[20mm] min-h-[297mm] flex flex-col items-center justify-center print:p-0 print:break-after-page text-black font-serif text-center relative bg-white">
           <div className="absolute top-[20mm] left-[20mm] right-[20mm] bottom-[20mm] border-4 border-double border-black pointer-events-none"></div>
           
           <div className="space-y-8 z-10 w-full px-12">
@@ -206,35 +250,35 @@ export default function ProgramSupervisi({ user }: { user: User }) {
         </div>
 
         {/* PAGE 1: Lembar Pengesahan */}
-        <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
+        <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif bg-white">
           <h1 className="text-center font-bold text-xl mb-12">LEMBAR PENGESAHAN</h1>
           
-          <table className="w-full mb-24 text-lg">
+          <table className="w-full mb-24 text-lg border-none">
             <tbody>
               <tr>
-                <td className="py-2 w-1/3">Nama Dokumen</td>
-                <td className="py-2 w-4">:</td>
-                <td className="py-2">Program Supervisi Kepala Sekolah</td>
+                <td className="py-2 w-1/3 border-none">Nama Dokumen</td>
+                <td className="py-2 w-4 border-none">:</td>
+                <td className="py-2 border-none">Program Supervisi Kepala Sekolah</td>
               </tr>
               <tr>
-                <td className="py-2">Tahun pelajaran</td>
-                <td className="py-2">:</td>
-                <td className="py-2">{academicYear}</td>
+                <td className="py-2 border-none">Tahun pelajaran</td>
+                <td className="py-2 border-none">:</td>
+                <td className="py-2 border-none">{academicYear}</td>
               </tr>
               <tr>
-                <td className="py-2">Satuan pendidikan</td>
-                <td className="py-2">:</td>
-                <td className="py-2">{school.name}</td>
+                <td className="py-2 border-none">Satuan pendidikan</td>
+                <td className="py-2 border-none">:</td>
+                <td className="py-2 border-none">{school.name}</td>
               </tr>
               <tr>
-                <td className="py-2">Nama Kepala Sekolah</td>
-                <td className="py-2">:</td>
-                <td className="py-2">{user.name}</td>
+                <td className="py-2 border-none">Nama Kepala Sekolah</td>
+                <td className="py-2 border-none">:</td>
+                <td className="py-2 border-none">{user.name}</td>
               </tr>
               <tr>
-                <td className="py-2">Alamat Sekolah</td>
-                <td className="py-2">:</td>
-                <td className="py-2">{school.address}</td>
+                <td className="py-2 border-none">Alamat Sekolah</td>
+                <td className="py-2 border-none">:</td>
+                <td className="py-2 border-none">{school.address}</td>
               </tr>
             </tbody>
           </table>
@@ -276,7 +320,7 @@ export default function ProgramSupervisi({ user }: { user: User }) {
         </div>
 
         {/* PAGE 2: Kata Pengantar */}
-        <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
+        <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif bg-white">
           <h1 className="text-center font-bold text-xl mb-8">KATA PENGANTAR</h1>
           
           <div className="space-y-4 text-justify leading-relaxed text-lg">
@@ -309,51 +353,43 @@ export default function ProgramSupervisi({ user }: { user: User }) {
         </div>
 
         {/* PAGE 3: Daftar Isi */}
-        <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
+        <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif bg-white">
           <h1 className="text-center font-bold text-xl mb-8">DAFTAR ISI</h1>
           
-          <div className="space-y-4 text-lg">
-            <div className="flex justify-between"><span>LEMBAR PENGESAHAN</span><span>i</span></div>
-            <div className="flex justify-between"><span>KATA PENGANTAR</span><span>ii</span></div>
-            <div className="flex justify-between"><span>DAFTAR ISI</span><span>iii</span></div>
-            <div className="flex justify-between mt-4"><span>BAB I PENDAHULUAN</span><span>1</span></div>
-            <div className="pl-6 space-y-2">
-              <div className="flex justify-between"><span>A. Latar Belakang & Perubahan Paradigma</span><span>1</span></div>
-              <div className="flex justify-between"><span>B. Tujuan Utama Supervisi Akademik</span><span>2</span></div>
-              <div className="flex justify-between"><span>C. Prinsip Utama Pembelajaran Mendalam</span><span>2</span></div>
-              <div className="flex justify-between"><span>D. Tiga Tahap Pengalaman Belajar Peserta Didik</span><span>3</span></div>
-              <div className="flex justify-between"><span>E. Komponen Utama Instrumen & Fokus Pengamatan</span><span>4</span></div>
-              <div className="flex justify-between"><span>F. Karakteristik Indikator Penilaian</span><span>5</span></div>
-              <div className="flex justify-between"><span>G. Dasar Hukum</span><span>5</span></div>
-            </div>
-            <div className="flex justify-between mt-4"><span>BAB II PELAKSANAAN SUPERVISI PEMBELAJARAN</span><span>8</span></div>
-            <div className="pl-6 space-y-2">
-              <div className="flex justify-between"><span>A. Observasi Kelas</span><span>8</span></div>
-              <div className="flex justify-between"><span>B. Saling Mengunjungi</span><span>9</span></div>
-              <div className="flex justify-between"><span>C. Demonstrasi Belajar</span><span>9</span></div>
-              <div className="flex justify-between"><span>D. Supervisi Klinis</span><span>10</span></div>
-            </div>
-            <div className="flex justify-between mt-4"><span>BAB III PERANGKAT DAN JADWAL SUPERVISI</span><span>11</span></div>
-            <div className="pl-6 space-y-2">
-              <div className="flex justify-between"><span>A. Perangkat Supervisi</span><span>11</span></div>
-              <div className="flex justify-between"><span>B. Mekanisme Supervisi</span><span>12</span></div>
-              <div className="flex justify-between"><span>C. Jadwal Supervisi</span><span>13</span></div>
-            </div>
-            <div className="flex justify-between mt-4"><span>BAB IV PENUTUP</span><span>14</span></div>
-            <div className="pl-6 space-y-2">
-              <div className="flex justify-between"><span>A. Kesimpulan</span><span>14</span></div>
-              <div className="flex justify-between"><span>B. Saran</span><span>14</span></div>
-            </div>
-            <div className="flex justify-between mt-4 font-bold"><span>LAMPIRAN-LAMPIRAN</span><span></span></div>
-            <div className="pl-6 space-y-2">
-              <div className="flex justify-between"><span>Lampiran 1. Rekapitulasi Rencana Tindak Lanjut</span><span>15</span></div>
-              <div className="flex justify-between"><span>Lampiran 2. Instrumen Supervisi RPP</span><span>16</span></div>
-              <div className="flex justify-between"><span>Lampiran 3. Instrumen Percakapan Pra Observasi</span><span>17</span></div>
-              <div className="flex justify-between"><span>Lampiran 4. Instrumen Pelaksanaan Observasi</span><span>18</span></div>
-              <div className="flex justify-between"><span>Lampiran 5. Instrumen Supervisi Pasca Observasi</span><span>20</span></div>
-              <div className="flex justify-between"><span>Lampiran 6. Instrumen Monitoring Administrasi</span><span>22</span></div>
-            </div>
-          </div>
+          <table className="w-full text-lg border-none">
+            <tbody>
+              <tr><td className="py-1 border-none font-bold">LEMBAR PENGESAHAN</td><td className="py-1 border-none text-right font-bold">i</td></tr>
+              <tr><td className="py-1 border-none font-bold">KATA PENGANTAR</td><td className="py-1 border-none text-right font-bold">ii</td></tr>
+              <tr><td className="py-1 border-none font-bold">DAFTAR ISI</td><td className="py-1 border-none text-right font-bold">iii</td></tr>
+              <tr><td className="py-1 pt-3 border-none font-bold">BAB I PENDAHULUAN</td><td className="py-1 pt-3 border-none text-right font-bold">1</td></tr>
+              <tr><td className="py-1 pl-6 border-none">A. Latar Belakang & Perubahan Paradigma</td><td className="py-1 border-none text-right">1</td></tr>
+              <tr><td className="py-1 pl-6 border-none">B. Tujuan Utama Supervisi Akademik</td><td className="py-1 border-none text-right">2</td></tr>
+              <tr><td className="py-1 pl-6 border-none">C. Prinsip Utama Pembelajaran Mendalam</td><td className="py-1 border-none text-right">2</td></tr>
+              <tr><td className="py-1 pl-6 border-none">D. Tiga Tahap Pengalaman Belajar Peserta Didik</td><td className="py-1 border-none text-right">3</td></tr>
+              <tr><td className="py-1 pl-6 border-none">E. Komponen Utama Instrumen & Fokus Pengamatan</td><td className="py-1 border-none text-right">4</td></tr>
+              <tr><td className="py-1 pl-6 border-none">F. Karakteristik Indikator Penilaian</td><td className="py-1 border-none text-right">5</td></tr>
+              <tr><td className="py-1 pl-6 border-none">G. Dasar Hukum</td><td className="py-1 border-none text-right">5</td></tr>
+              <tr><td className="py-1 pt-3 border-none font-bold">BAB II PELAKSANAAN SUPERVISI PEMBELAJARAN</td><td className="py-1 pt-3 border-none text-right font-bold">8</td></tr>
+              <tr><td className="py-1 pl-6 border-none">A. Observasi Kelas</td><td className="py-1 border-none text-right">8</td></tr>
+              <tr><td className="py-1 pl-6 border-none">B. Saling Mengunjungi</td><td className="py-1 border-none text-right">9</td></tr>
+              <tr><td className="py-1 pl-6 border-none">C. Demonstrasi Belajar</td><td className="py-1 border-none text-right">9</td></tr>
+              <tr><td className="py-1 pl-6 border-none">D. Supervisi Klinis</td><td className="py-1 border-none text-right">10</td></tr>
+              <tr><td className="py-1 pt-3 border-none font-bold">BAB III PERANGKAT DAN JADWAL SUPERVISI</td><td className="py-1 pt-3 border-none text-right font-bold">11</td></tr>
+              <tr><td className="py-1 pl-6 border-none">A. Perangkat Supervisi</td><td className="py-1 border-none text-right">11</td></tr>
+              <tr><td className="py-1 pl-6 border-none">B. Mekanisme Supervisi</td><td className="py-1 border-none text-right">12</td></tr>
+              <tr><td className="py-1 pl-6 border-none">C. Jadwal Supervisi</td><td className="py-1 border-none text-right">13</td></tr>
+              <tr><td className="py-1 pt-3 border-none font-bold">BAB IV PENUTUP</td><td className="py-1 pt-3 border-none text-right font-bold">14</td></tr>
+              <tr><td className="py-1 pl-6 border-none">A. Kesimpulan</td><td className="py-1 border-none text-right">14</td></tr>
+              <tr><td className="py-1 pl-6 border-none">B. Saran</td><td className="py-1 border-none text-right">14</td></tr>
+              <tr><td className="py-1 pt-3 border-none font-bold">LAMPIRAN-LAMPIRAN</td><td className="py-1 pt-3 border-none text-right font-bold">15</td></tr>
+              <tr><td className="py-1 pl-6 border-none">Lampiran 1. Rekapitulasi Rencana Tindak Lanjut</td><td className="py-1 border-none text-right">15</td></tr>
+              <tr><td className="py-1 pl-6 border-none">Lampiran 2. Instrumen Supervisi RPP</td><td className="py-1 border-none text-right">16</td></tr>
+              <tr><td className="py-1 pl-6 border-none">Lampiran 3. Instrumen Percakapan Pra Observasi</td><td className="py-1 border-none text-right">17</td></tr>
+              <tr><td className="py-1 pl-6 border-none">Lampiran 4. Instrumen Pelaksanaan Observasi</td><td className="py-1 border-none text-right">18</td></tr>
+              <tr><td className="py-1 pl-6 border-none">Lampiran 5. Instrumen Supervisi Pasca Observasi</td><td className="py-1 border-none text-right">20</td></tr>
+              <tr><td className="py-1 pl-6 border-none">Lampiran 6. Instrumen Monitoring Administrasi</td><td className="py-1 border-none text-right">22</td></tr>
+            </tbody>
+          </table>
           <div className="text-center mt-12">iii</div>
         </div>
 
