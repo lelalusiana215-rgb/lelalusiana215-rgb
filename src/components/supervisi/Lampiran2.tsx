@@ -11,7 +11,7 @@ interface LampiranProps {
 
 export default function Lampiran2({ user, school, printDate, academicYear, teachers }: LampiranProps) {
   return (
-    <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif">
+    <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif relative bg-white pb-16">
       <h1 className="text-center font-bold text-lg mb-2 uppercase">Lampiran 1</h1>
       <h2 className="text-center font-bold text-lg mb-8 uppercase">REKAPITULASI RENCANA TINDAK LANJUT HASIL SUPERVISI AKADEMIK<br/>TAHUN PELAJARAN {academicYear}</h2>
       
@@ -66,6 +66,14 @@ export default function Lampiran2({ user, school, printDate, academicYear, teach
           <p className="font-bold underline">{user.name}</p>
           <p>NIP. {user.nip || '.........................'}</p>
         </div>
+      </div>
+
+      {/* Footer Page Number */}
+      <div className="text-center mt-16 print:absolute print:bottom-8 print:left-0 print:right-0 text-black font-serif text-lg">
+        15
+      </div>
+      <div style={{ msoElement: 'footer' }} className="word-footer">
+        <p style={{ textAlign: 'center', fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>15</p>
       </div>
     </div>
   );

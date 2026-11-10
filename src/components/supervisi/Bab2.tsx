@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function Bab2() {
   return (
-    <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif text-justify">
+    <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif text-justify relative bg-white pb-16">
       <h1 className="text-center font-bold text-xl mb-8">BAB II<br/>PELAKSANAAN SUPERVISI PEMBELAJARAN</h1>
       
       <div className="space-y-6 text-lg leading-relaxed">
@@ -57,50 +57,35 @@ export default function Bab2() {
           <p className="mb-2 indent-8">
             Melalui kegiatan ini, guru dapat memperoleh wawasan baru mengenai strategi pembelajaran, manajemen kelas, pemanfaatan media, maupun teknik asesmen yang efektif. Guru yang dikunjungi pun mendapat kesempatan untuk memperoleh umpan balik yang bersifat membangun dari rekan sejawatnya.
           </p>
-          <p className="mb-2 indent-8">
-            Prinsip utama dari supervisi ini adalah kesetaraan, keterbukaan, dan refleksi bersama, sehingga tercipta budaya saling mendukung dalam meningkatkan mutu pembelajaran. Dalam konteks pembelajaran mendalam, guru saling mengunjungi memungkinkan terjadinya:
-          </p>
-          <ul className="list-[lower-alpha] list-outside ml-6">
-            <li>Pertukaran ide untuk merancang pembelajaran yang mendorong siswa berpikir kritis dan kreatif.</li>
-            <li>Diskusi reflektif tentang bagaimana mengaitkan materi dengan konteks nyata kehidupan siswa.</li>
-            <li>Kolaborasi dalam merancang proyek atau aktivitas yang menumbuhkan keterampilan abad 21.</li>
-          </ul>
         </div>
 
         <div>
           <h2 className="font-bold mb-2">C. Demonstrasi Belajar</h2>
           <p className="mb-2 indent-8">
-            Guru atau kepala sekolah melakukan demonstrasi pembelajaran sebagai contoh praktik baik untuk guru lain. Demonstrasi mengajar merupakan bentuk supervisi di mana seorang guru atau supervisor menampilkan praktik pembelajaran di depan guru lain dengan tujuan memberikan contoh konkret strategi mengajar yang efektif. Kegiatan ini biasanya dilakukan untuk memperlihatkan metode, teknik, atau penggunaan media tertentu yang dapat meningkatkan kualitas pembelajaran.
+            Demonstrasi pembelajaran memberikan ruang bagi guru untuk mempertunjukkan metode inovatif di hadapan rekan sejawat. Demonstrasi mengajar (teaching demonstration) adalah kegiatan di mana seorang guru yang memiliki keunggulan atau inovasi dalam strategi pembelajaran mendemonstrasikan praktiknya di depan rekan-rekan sesama guru. Kegiatan ini dirancang sebagai sarana pembelajaran kolaboratif berbasis praktik nyata (modeling).
           </p>
           <p className="mb-2 indent-8">
-            Melalui demonstrasi mengajar, guru dapat belajar secara langsung bagaimana menerapkan pendekatan, model, atau strategi pembelajaran yang sesuai dengan karakteristik peserta didik dan tujuan kurikulum. Kegiatan ini sekaligus menjadi sarana untuk memperkenalkan inovasi pembelajaran yang dapat diterapkan oleh guru lain di kelas masing-masing.
+            Melalui demonstrasi belajar, guru lain dapat melihat secara langsung bagaimana suatu model pembelajaran mendalam diterapkan, bagaimana guru mengelola kelas secara interaktif, serta bagaimana teknik memotivasi peserta didik dijalankan di dalam kelas. Setelah kegiatan demonstrasi selesai, sesi diskusi reflektif dilakukan untuk mengupas aspek-aspek keberhasilan dan cara mengadaptasinya di kelas masing-masing.
           </p>
-          <p className="mb-2 indent-8">
-            Dalam konteks pembelajaran mendalam, demonstrasi mengajar difokuskan pada praktik yang:
-          </p>
-          <ol className="list-decimal list-outside ml-6 space-y-1">
-            <li>Mendorong siswa berpikir kritis, analitis, dan kreatif.</li>
-            <li>Menghubungkan materi dengan situasi nyata dan relevan dalam kehidupan sehari-hari.</li>
-            <li>Melibatkan siswa secara aktif melalui diskusi, eksperimen, maupun proyek.</li>
-            <li>Menunjukkan cara melakukan asesmen yang tidak hanya mengukur hafalan, tetapi juga pemahaman konsep secara mendalam.</li>
-          </ol>
         </div>
 
         <div>
           <h2 className="font-bold mb-2">D. Supervisi Klinis</h2>
           <p className="mb-2 indent-8">
-            Supervisi klinis dilakukan secara individual dengan fokus mendalam pada peningkatan kualitas guru tertentu berdasarkan kebutuhan. Supervisi klinis adalah bentuk supervisi yang dilakukan secara langsung, sistematis, dan berkesinambungan melalui hubungan tatap muka antara supervisor dengan guru. Tujuannya untuk membantu guru memperbaiki praktik pembelajaran berdasarkan data nyata hasil observasi. Disebut "klinis" karena pelaksanaannya mirip dengan proses diagnosis dan terapi dalam dunia medis: supervisor mendiagnosis kelemahan dan kekuatan pembelajaran, kemudian bersama guru merencanakan perbaikan serta memberikan tindak lanjut yang sesuai.
+            Pendekatan klinis yang intensif dan sistematis untuk membantu guru mengatasi tantangan pedagogis secara spesifik. Supervisi klinis adalah bentuk supervisi khusus yang bersifat diagnostik dan terapeutik. Pendekatan ini dilakukan melalui siklus yang sistematis, meliputi: (1) pertemuan pra-observasi untuk merumuskan fokus pengamatan atas permintaan atau kebutuhan guru; (2) observasi kelas secara objektif; dan (3) pertemuan pasca-observasi untuk melakukan refleksi bersama, menganalisis data, serta menyusun rencana aksi perbaikan.
           </p>
           <p className="mb-2 indent-8">
-            Dalam kerangka deep learning, supervisi klinis menjadi sarana yang efektif untuk memastikan bahwa guru:
+            Supervisi klinis sangat efektif untuk membantu guru yang menghadapi tantangan spesifik dalam pengajaran, karena hubungan yang dibangun adalah hubungan kolegial yang dilandasi kepercayaan dan semangat saling mendukung.
           </p>
-          <ol className="list-decimal list-outside ml-6 space-y-1">
-            <li>Menerapkan strategi pembelajaran yang menumbuhkan berpikir kritis, analitis, kreatif, dan kolaboratif.</li>
-            <li>Menghubungkan materi ajar dengan situasi nyata sehingga pembelajaran lebih bermakna.</li>
-            <li>Menggunakan metode inkuiri, proyek, atau pemecahan masalah yang mendorong pemahaman mendalam siswa.</li>
-            <li>Melakukan asesmen yang tidak hanya menilai hasil akhir, tetapi juga proses belajar dan refleksi siswa.</li>
-          </ol>
         </div>
+      </div>
+
+      {/* Footer Page Number */}
+      <div className="text-center mt-16 print:absolute print:bottom-8 print:left-0 print:right-0 text-black font-serif text-lg">
+        8
+      </div>
+      <div style={{ msoElement: 'footer' }} className="word-footer">
+        <p style={{ textAlign: 'center', fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>8</p>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function Bab1() {
   return (
-    <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif text-justify">
+    <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif text-justify relative bg-white pb-16">
       <h1 className="text-center font-bold text-xl mb-8 uppercase">BAB I<br/>PENDAHULUAN</h1>
       
       <div className="space-y-6 text-lg leading-relaxed">
@@ -98,19 +98,19 @@ export default function Bab1() {
               </tr>
               <tr>
                 <td className="border border-black p-2.5 font-bold">Penerapan Prinsip Pembelajaran Mendalam</td>
-                <td className="border border-black p-2.5 text-left">Keterlaksanaan prinsip <em>mindful</em>, <em>meaningful</em>, dan <em>joyful</em> selama pembelajaran berlangsung.</td>
+                <td className="border border-black p-2.5 text-left">Keterwujudan suasana belajar yang berkesadaran, bermakna, dan menggembirakan bagi seluruh peserta didik.</td>
               </tr>
               <tr>
                 <td className="border border-black p-2.5 font-bold">Pengalaman Belajar Siswa</td>
-                <td className="border border-black p-2.5 text-left">Kesempatan bagi peserta didik untuk melalui proses memahami, mengaplikasi, dan merefleksi.</td>
+                <td className="border border-black p-2.5 text-left">Fasilitasi tahap memahami, mengaplikasi, dan merefleksi konsep pengetahuan.</td>
               </tr>
               <tr>
                 <td className="border border-black p-2.5 font-bold">Asesmen Pembelajaran</td>
-                <td className="border border-black p-2.5 text-left">Pemanfaatan hasil asesmen untuk memantau perkembangan siswa, memberikan <em>feedback</em> konstruktif, dan menentukan langkah tindak lanjut.</td>
+                <td className="border border-black p-2.5 text-left">Pelaksanaan asesmen awal, formatif selama proses, dan sumatif hasil belajar secara autentik dan beragam.</td>
               </tr>
               <tr>
-                <td className="border border-black p-2.5 font-bold">Refleksi & Tindak Lanjut</td>
-                <td className="border border-black p-2.5 text-left">Dialog reflektif pasca-observasi antara supervisor (kepala sekolah) dan guru untuk mengidentifikasi praktik baik serta area yang perlu ditingkatkan.</td>
+                <td className="border border-black p-2.5 font-bold">Budaya Positif & KSE</td>
+                <td className="border border-black p-2.5 text-left">Penerapan disiplin positif, pengelolaan kesadaran sosial emosional, serta interaksi saling memuliakan.</td>
               </tr>
             </tbody>
           </table>
@@ -139,6 +139,14 @@ export default function Bab1() {
             <li>Permendikbudristek No. 46 Tahun 2023 tentang Pencegahan dan Penanganan Kekerasan di Satuan Pendidikan (PPKSP).</li>
           </ol>
         </div>
+      </div>
+
+      {/* Footer Page Number */}
+      <div className="text-center mt-16 print:absolute print:bottom-8 print:left-0 print:right-0 text-black font-serif text-lg">
+        1
+      </div>
+      <div style={{ msoElement: 'footer' }} className="word-footer">
+        <p style={{ textAlign: 'center', fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>1</p>
       </div>
     </div>
   );

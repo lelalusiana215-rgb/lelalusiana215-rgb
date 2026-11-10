@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function Bab4() {
   return (
-    <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif text-justify">
+    <div className="p-[20mm] min-h-[297mm] print:p-0 print:break-after-page text-black font-serif text-justify relative bg-white pb-16">
       <h1 className="text-center font-bold text-xl mb-8">BAB IV<br/>PENUTUP</h1>
       
       <div className="space-y-6 text-lg leading-relaxed">
@@ -36,6 +36,14 @@ export default function Bab4() {
             </li>
           </ul>
         </div>
+      </div>
+
+      {/* Footer Page Number */}
+      <div className="text-center mt-16 print:absolute print:bottom-8 print:left-0 print:right-0 text-black font-serif text-lg">
+        14
+      </div>
+      <div style={{ msoElement: 'footer' }} className="word-footer">
+        <p style={{ textAlign: 'center', fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>14</p>
       </div>
     </div>
   );
